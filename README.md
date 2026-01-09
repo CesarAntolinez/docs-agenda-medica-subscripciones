@@ -29,6 +29,10 @@ Paquete completo de gestión de suscripciones para Laravel con soporte multi-pas
 
 ## 📖 Documentación
 
+### Planificación
+- **[Documento de Requerimientos Funcionales (PRD)](./docs/PRD.md)** - Requerimientos completos del producto
+- **[Roadmap de Desarrollo](./docs/ROADMAP.md)** - Plan de desarrollo con asignación de equipo
+
 ### Primeros Pasos
 - **[Guía de Instalación](./docs/INSTALLATION.md)** - Instalación paso a paso
 - **[Configuración](./docs/CONFIGURATION.md)** - Opciones de configuración
