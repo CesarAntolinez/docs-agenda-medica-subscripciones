@@ -1,24 +1,24 @@
-# Database Schema
-## Laravel Subscription Manager Package
+# Esquema de Base de Datos
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026  
-**Update:** Polymorphic Relationships (subscriber_type/subscriber_id)
-
----
-
-## 📑 Table of Contents
-
-1. [ERD Diagram](#erd-diagram)
-2. [Table Categories](#table-categories)
-3. [Table Descriptions](#table-descriptions)
-4. [Relationships](#relationships)
-5. [Recommended Indexes](#recommended-indexes)
-6. [Deletion Policies](#deletion-policies)
+**Versión:** 2.0  
+**Fecha:** Enero 2026  
+**Actualización:** Relaciones Polimórficas (subscriber_type/subscriber_id) + Períodos Personalizables
 
 ---
 
-## ERD Diagram
+## 📑 Tabla de Contenidos
+
+1. [Diagrama ERD](#diagrama-erd)
+2. [Categorías de Tablas](#categorías-de-tablas)
+3. [Descripciones de Tablas](#descripciones-de-tablas)
+4. [Relaciones](#relaciones)
+5. [Índices Recomendados](#índices-recomendados)
+6. [Políticas de Eliminación](#políticas-de-eliminación)
+
+---
+
+## Diagrama ERD
 
 ```mermaid
 erDiagram
@@ -65,6 +65,9 @@ erDiagram
         string subscriber_type "Polymorphic type"
         bigint subscriber_id "Polymorphic ID"
         bigint plan_id FK
+        int trial_days "Custom trial (NULL = use plan trial)"
+        date trial_ends_at "Calculated trial end date"
+        int grace_period_months "Custom grace (NULL = use global config)"
         enum status "trial, active, past_due, grace_period, cancelled, blocked"
         enum periodicity "monthly, annual, annual_monthly_billing"
         date starts_at
@@ -202,7 +205,7 @@ erDiagram
         bigint id PK
         string notifiable_type "Polymorphic type"
         bigint notifiable_id "Polymorphic ID"
-        string type "20+ types"
+        string type "20+ tipos"
         timestamp sent_at
         enum status "pending, sent, failed, bounced"
         json metadata
@@ -211,8 +214,8 @@ erDiagram
     
     audit_logs {
         bigint id PK
-        string auditable_type "Polymorphic type, NULL for system"
-        bigint auditable_id "Polymorphic ID, NULL for system"
+        string auditable_type "Tipo polimórfico, NULL para sistema"
+        bigint auditable_id "ID polimórfico, NULL para sistema"
         string action
         string entity
         bigint entity_id
@@ -225,198 +228,249 @@ erDiagram
 
 ---
 
-## Table Categories
+## Categorías de Tablas
 
-### Core Tables (Always Included)
-- `plans` - Subscription plans catalog
-- `subscriptions` - Subscriber subscriptions (polymorphic)
-- `payments` - Payment records with 3DS support
-- `payment_retries` - Payment retry tracking
-- `grace_periods` - Grace period management
-- `billing_data` - Tax/billing data (polymorphic)
-- `coupons` ✅ - Discount coupons catalog
-- `subscriber_coupons` ✅ - Applied coupons (polymorphic)
-- `notifications` - Notification log (polymorphic)
-- `audit_logs` - Audit trail (polymorphic)
+### Tablas Core (Siempre Incluidas)
+- `plans` - Catálogo de planes de suscripción
+- `subscriptions` - Suscripciones de suscriptores (polimórfico)
+- `payments` - Registros de pagos con soporte 3DS
+- `payment_retries` - Seguimiento de reintentos de pago
+- `grace_periods` - Gestión de períodos de gracia
+- `billing_data` - Datos fiscales/facturación (polimórfico)
+- `coupons` ✅ - Catálogo de cupones de descuento
+- `subscriber_coupons` ✅ - Cupones aplicados (polimórfico)
+- `notifications` - Registro de notificaciones (polimórfico)
+- `audit_logs` - Registro de auditoría (polimórfico)
 
-### Optional Tables (Separate Migrations)
-- `tokens_usage` - Only if `tokens` feature is enabled
-- `referrals` - Only if `referrals` feature is enabled
-- `invoices` - Only if `invoicing` feature is enabled
+### Tablas Opcionales (Migraciones Separadas)
+- `tokens_usage` - Solo si la característica `tokens` está habilitada
+- `referrals` - Solo si la característica `referrals` está habilitada
+- `invoices` - Solo si la característica `invoicing` está habilitada
 
-### Not Included (Host Application Responsibility)
-- `users` or any subscriber model - The package uses **polymorphic relationships** to work with any subscribable model provided by the host application
+### No Incluidas (Responsabilidad de la Aplicación Host)
+- `users` o cualquier modelo suscriptor - El paquete usa **relaciones polimórficas** para trabajar con cualquier modelo suscribible proporcionado por la aplicación host
 
 ---
 
-## Table Descriptions
+## Descripciones de Tablas
 
 ### 1. plans
 
-**Description:** Catalog of available subscription plans.
+**Descripción:** Catálogo de planes de suscripción disponibles.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| `name` | VARCHAR(255) | NO | Plan name |
-| `description` | TEXT | YES | Detailed plan description |
-| `tokens_monthly` | INT | NO | Monthly token allocation |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| `name` | VARCHAR(255) | NO | Nombre del plan |
+| `description` | TEXT | SÍ | Descripción detallada del plan |
+| `tokens_monthly` | INT | NO | Asignación mensual de tokens |
 | `periodicity` | ENUM | NO | monthly, annual, annual_monthly_billing |
-| `price_mxn` | DECIMAL(10,2) | NO | Price in Mexican pesos |
-| `price_cop` | DECIMAL(10,2) | NO | Price in Colombian pesos |
-| `trial_days` | INT | NO | Trial period days |
-| `active` | BOOLEAN | NO | Plan available for new subscriptions |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `price_mxn` | DECIMAL(10,2) | NO | Precio en pesos mexicanos |
+| `price_cop` | DECIMAL(10,2) | NO | Precio en pesos colombianos |
+| `trial_days` | INT | NO | Días de período de prueba |
+| `active` | BOOLEAN | NO | Plan disponible para nuevas suscripciones |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY:  `id`
-- INDEX: `active`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- ÍNDICE: `active`
 
-**Relationships:**
+**Relaciones:**
 - `plans` → `subscriptions` (1:N)
 
-**Policies:**
-- No soft delete (historical plans remain)
-- Prices are fixed per currency (no automatic conversion)
-- Inactive plan doesn't appear in selection, but existing subscriptions continue
+**Políticas:**
+- Sin borrado suave (los planes históricos permanecen)
+- Los precios son fijos por moneda (sin conversión automática)
+- Plan inactivo no aparece en selección, pero suscripciones existentes continúan
 
 ---
 
-### 2. subscriptions 🔒 **[UPDATED - Polymorphic + 3DS]**
+### 2. subscriptions 🔒 **[ACTUALIZADO - Polimórfico + 3DS + Períodos Personalizables]**
 
-**Description:** Subscriptions linked to any subscribable model (User, Company, Team, etc.)
+**Descripción:** Suscripciones vinculadas a cualquier modelo suscribible (User, Company, Team, etc.)
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Polymorphic model class (App\\Models\\User, App\\Models\\Company, etc.)** |
-| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Polymorphic model ID** |
-| `plan_id` | BIGINT UNSIGNED | NO | FK → plans.id (current plan) |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Clase del modelo polimórfico (App\\Models\\User, App\\Models\\Company, etc.)** |
+| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **ID del modelo polimórfico** |
+| `plan_id` | BIGINT UNSIGNED | NO | FK → plans.id (plan actual) |
+| **`trial_days`** 🆕 | **INT** | **SÍ** | **Trial personalizado en días. Si es NULL, usa `plans.trial_days`. Permite promociones especiales o ajustes manuales.** |
+| **`trial_ends_at`** 🆕 | **DATE** | **SÍ** | **Fecha calculada de fin del trial. Se calcula automáticamente al crear la suscripción.** |
+| **`grace_period_months`** 🆕 | **INT** | **SÍ** | **Período de gracia personalizado en meses. Si es NULL, usa configuración global (2 meses). Permite ajuste por nivel de cliente.** |
 | `status` | ENUM | NO | trial, active, past_due, grace_period, cancelled, blocked |
 | `periodicity` | ENUM | NO | monthly, annual, annual_monthly_billing |
-| `starts_at` | DATE | NO | Subscription start date |
-| `ends_at` | DATE | YES | End date (NULL if active) |
-| `next_billing_date` | DATE | NO | Next billing date |
-| `card_token` | VARCHAR(255) | YES | Tokenized card from payment gateway |
-| `manual_payment_reference` | VARCHAR(255) | YES | Manual payment reference |
-| `mit_enabled` | BOOLEAN | NO | MIT enabled for recurring payments |
-| `first_payment_3ds_completed` | BOOLEAN | NO | First payment with 3DS successful |
-| `pending_plan_id` | BIGINT UNSIGNED | YES | FK → plans.id (for scheduled downgrades) |
-| `pending_plan_change_date` | DATE | YES | Scheduled change date |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
-| `deleted_at` | TIMESTAMP | YES | Soft delete |
+| `starts_at` | DATE | NO | Fecha de inicio de suscripción |
+| `ends_at` | DATE | SÍ | Fecha de fin (NULL si está activa) |
+| `next_billing_date` | DATE | NO | Próxima fecha de facturación |
+| `card_token` | VARCHAR(255) | SÍ | Tarjeta tokenizada de la pasarela de pagos |
+| `manual_payment_reference` | VARCHAR(255) | SÍ | Referencia de pago manual |
+| `mit_enabled` | BOOLEAN | NO | MIT habilitado para pagos recurrentes |
+| `first_payment_3ds_completed` | BOOLEAN | NO | Primer pago con 3DS exitoso |
+| `pending_plan_id` | BIGINT UNSIGNED | SÍ | FK → plans.id (para downgrades programados) |
+| `pending_plan_change_date` | DATE | SÍ | Fecha de cambio programada |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
+| `deleted_at` | TIMESTAMP | SÍ | Borrado suave |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `subscriber_type`, `subscriber_id`** 🆕
-- FOREIGN KEY: `plan_id` → `plans.id`
-- FOREIGN KEY: `pending_plan_id` → `plans.id`
-- INDEX: `status`, `next_billing_date`, `deleted_at`
-- INDEX: `mit_enabled`, `first_payment_3ds_completed`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `subscriber_type`, `subscriber_id`** 🆕
+- CLAVE FORÁNEA: `plan_id` → `plans.id`
+- CLAVE FORÁNEA: `pending_plan_id` → `plans.id`
+- ÍNDICE: `status`, `next_billing_date`, `deleted_at`
+- ÍNDICE: `mit_enabled`, `first_payment_3ds_completed`
+- **ÍNDICE: `trial_ends_at`** 🆕
 
-**Relationships:**
-- **Subscriber (polymorphic)** → `subscriptions` (1:N)
+**Relaciones:**
+- **Subscriber (polimórfico)** → `subscriptions` (1:N)
 - `plans` → `subscriptions` (1:N)
 - `subscriptions` → `payments` (1:N)
 - `subscriptions` → `tokens_usage` (1:N)
 - `subscriptions` → `grace_periods` (1:N)
 
-**Policies:**
-- Soft delete enabled
-- A subscriber can have multiple subscriptions (history)
-- Only one active subscription per subscriber at a time
+**Políticas:**
+- Borrado suave habilitado
+- Un suscriptor puede tener múltiples suscripciones (historial)
+- Solo una suscripción activa por suscriptor a la vez
 
-**Status:**
-- `trial`: In trial period
-- `active`: Active and up-to-date subscription
-- `past_due`: Overdue payment (in retries)
-- `grace_period`: In grace period (2 months)
-- `cancelled`: Cancelled by subscriber
-- `blocked`: Blocked for non-payment
+**Estados:**
+- `trial`: En período de prueba
+- `active`: Suscripción activa y al día
+- `past_due`: Pago vencido (en reintentos)
+- `grace_period`: En período de gracia (personalizable)
+- `cancelled`: Cancelada por el suscriptor
+- `blocked`: Bloqueada por falta de pago
 
-**Polymorphic Usage:**
-The package doesn't define what a "subscriber" is. It can be:
+**Uso Polimórfico:**
+El paquete no define qué es un "suscriptor". Puede ser:
 - `App\Models\User`
 - `App\Models\Company`
 - `App\Models\Team`
 - `App\Models\Organization`
-- Any model in your application that uses the `HasSubscription` trait
+- Cualquier modelo en tu aplicación que use el trait `HasSubscription`
+
+**Reglas de Negocio:**
+
+### Trial Personalizable
+
+**Lógica de Aplicación:**
+1. Si `subscriptions.trial_days` es NULL → usar `plans.trial_days` (comportamiento estándar)
+2. Si `subscriptions.trial_days` tiene valor → usar ese valor (override personalizado)
+3. Si `subscriptions.trial_days = 0` → sin trial (pago inmediato)
+
+**Casos de Uso:**
+- Trial estándar: `trial_days = NULL` (hereda del plan)
+- Promoción especial: `trial_days = 60` (60 días aunque el plan tenga 30)
+- Cliente corporativo: `trial_days = 0` (sin trial, pago inmediato)
+- Ajuste manual admin: Cualquier valor personalizado
+
+**Cálculo de `trial_ends_at`:**
+```php
+// Pseudocódigo
+$trialDays = $subscription->trial_days ?? $subscription->plan->trial_days;
+$subscription->trial_ends_at = $subscription->starts_at->addDays($trialDays);
+```
+
+### Período de Gracia Personalizable
+
+**Lógica de Aplicación:**
+1. Si `subscriptions.grace_period_months` es NULL → usar config global (2 meses)
+2. Si `subscriptions.grace_period_months` tiene valor → usar ese valor personalizado
+3. Si `subscriptions.grace_period_months = 0` → bloqueo inmediato (sin gracia)
+
+**Casos de Uso:**
+- Cliente estándar: `grace_period_months = NULL` (2 meses por defecto)
+- Cliente premium: `grace_period_months = 6` (6 meses de tolerancia)
+- Cliente problemático: `grace_period_months = 0` (bloqueo inmediato)
+- Ajuste temporal admin: Cualquier valor de 1-12 meses
+
+**Ejemplo de Creación de Período de Gracia:**
+```php
+// Pseudocode
+$graceMonths = $subscription->grace_period_months ?? config('subscriptions.grace_period.months', 2);
+
+$gracePeriod = GracePeriod::create([
+    'subscription_id' => $subscription->id,
+    'started_at' => now(),
+    'ends_at' => now()->addMonths($graceMonths),
+]);
+```
 
 ---
 
-### 3. tokens_usage **[OPTIONAL MODULE - Polymorphic]**
+### 3. tokens_usage **[MÓDULO OPCIONAL - Polimórfico]**
 
-**Description:** Token consumption tracking per billing period. Only created if `tokens` feature is enabled.
+**Descripción:** Seguimiento de consumo de tokens por período de facturación. Solo se crea si la característica `tokens` está habilitada.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Polymorphic model class** |
-| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Polymorphic model ID** |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Clase del modelo polimórfico** |
+| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **ID del modelo polimórfico** |
 | `subscription_id` | BIGINT UNSIGNED | NO | FK → subscriptions.id |
-| `period_start` | DATE | NO | Billing period start |
-| `period_end` | DATE | NO | Billing period end |
-| `used` | INT | NO | Tokens used in period |
-| `total` | INT | NO | Total tokens allocated |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `period_start` | DATE | NO | Inicio del período de facturación |
+| `period_end` | DATE | NO | Fin del período de facturación |
+| `used` | INT | NO | Tokens utilizados en el período |
+| `total` | INT | NO | Total de tokens asignados |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `subscriber_type`, `subscriber_id`** 🆕
-- FOREIGN KEY: `subscription_id` → `subscriptions.id`
-- INDEX: `subscription_id`, `period_start`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `subscriber_type`, `subscriber_id`** 🆕
+- CLAVE FORÁNEA: `subscription_id` → `subscriptions.id`
+- ÍNDICE: `subscription_id`, `period_start`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `tokens_usage` (1:N)
 - `subscriptions` → `tokens_usage` (1:N)
 
-**Policies:**
-- New record created each billing period
-- Unused tokens DO NOT accumulate (`used` field resets)
-- Allows viewing consumption history
+**Políticas:**
+- Se crea un nuevo registro cada período de facturación
+- Los tokens no utilizados NO se acumulan (el campo `used` se reinicia)
+- Permite ver historial de consumo
 
 ---
 
-### 4. payments 🔒 **[UPDATED - 3DS]**
+### 4. payments 🔒 **[ACTUALIZADO - 3DS]**
 
-**Description:** Complete record of all payment attempts with 3DS support.
+**Descripción:** Registro completo de todos los intentos de pago con soporte 3DS.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | `subscription_id` | BIGINT UNSIGNED | NO | FK → subscriptions.id |
-| `amount` | DECIMAL(10,2) | NO | Payment amount |
-| `currency` | VARCHAR(3) | NO | MXN or COP |
+| `amount` | DECIMAL(10,2) | NO | Monto del pago |
+| `currency` | VARCHAR(3) | NO | MXN o COP |
 | `method` | ENUM | NO | card, bank_transfer |
 | `status` | ENUM | NO | pending, processing, **requires_3ds**, **authenticating**, **authenticated**, completed, failed, refunded, cancelled |
-| `openpay_transaction_id` | VARCHAR(255) | YES | Transaction ID in payment gateway |
-| `attempt` | INT | NO | Attempt number (1, 2, 3) |
-| `paid_at` | TIMESTAMP | YES | Payment completion date |
-| `error_code` | VARCHAR(50) | YES | Error code if failed |
-| `error_message` | TEXT | YES | Error message if failed |
-| **`requires_3ds`** 🆕 | **BOOLEAN** | **NO** | **Payment requires 3DS authentication** |
+| `openpay_transaction_id` | VARCHAR(255) | SÍ | ID de transacción en la pasarela de pagos |
+| `attempt` | INT | NO | Número de intento (1, 2, 3) |
+| `paid_at` | TIMESTAMP | SÍ | Fecha de finalización del pago |
+| `error_code` | VARCHAR(50) | SÍ | Código de error si falló |
+| `error_message` | TEXT | SÍ | Mensaje de error si falló |
+| **`requires_3ds`** 🆕 | **BOOLEAN** | **NO** | **El pago requiere autenticación 3DS** |
 | **`three_ds_status`** 🆕 | **ENUM** | **NO** | **not_required, pending, authenticated, failed, timeout** |
 | **`three_ds_redirect_url`** 🆕 | **VARCHAR(500)** | **YES** | **Bank URL for authentication** |
 | **`three_ds_version`** 🆕 | **VARCHAR(10)** | **YES** | **3DS version (1.0 or 2.0)** |
 | **`authentication_required_notified_at`** 🆕 | **TIMESTAMP** | **YES** | **When user was notified** |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- FOREIGN KEY: `subscription_id` → `subscriptions.id`
-- INDEX: `status`, `openpay_transaction_id`, `subscription_id`
-- INDEX: **`requires_3ds`, `three_ds_status`** 🆕
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- CLAVE FORÁNEA: `subscription_id` → `subscriptions.id`
+- ÍNDICE: `status`, `openpay_transaction_id`, `subscription_id`
+- ÍNDICE: **`requires_3ds`, `three_ds_status`** 🆕
 
-**Relationships:**
+**Relaciones:**
 - `subscriptions` → `payments` (1:N)
 - `payments` → `payment_retries` (1:N)
 - `payments` → `invoices` (1:1)
 
-**Policies:**
+**Políticas:**
 - NO soft delete (complete audit)
 - Each charge attempt creates a record
 - Status reflects payment lifecycle
@@ -437,76 +491,76 @@ The package doesn't define what a "subscriber" is. It can be:
 
 ### 5. coupons **[CORE]**
 
-**Description:** Discount coupon catalog.
+**Descripción:** Discount coupon catalog.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | `code` | VARCHAR(50) | NO | Unique coupon code |
 | `type` | ENUM | NO | percentage, fixed |
-| `value` | DECIMAL(10,2) | NO | Discount value (% or fixed amount) |
-| `duration_months` | INT | YES | Duration in months (NULL = permanent) |
-| `applicable_plans` | JSON | YES | Applicable plan IDs (NULL = all) |
-| `usage_limit` | INT | YES | Total usage limit (NULL = unlimited) |
+| `value` | DECIMAL(10,2) | NO | Valor del descuento (% or fixed amount) |
+| `duration_months` | INT | SÍ | Duration in months (NULL = permanent) |
+| `applicable_plans` | JSON | SÍ | Applicable plan IDs (NULL = all) |
+| `usage_limit` | INT | SÍ | Total usage limit (NULL = unlimited) |
 | `current_usage` | INT | NO | Current usage count |
-| `expires_at` | DATE | YES | Expiration date (NULL = doesn't expire) |
+| `expires_at` | DATE | SÍ | Fecha de expiración (NULL = doesn't expire) |
 | `active` | BOOLEAN | NO | Coupon is active |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
+**Índices:**
+- CLAVE PRIMARIA: `id`
 - UNIQUE: `code`
-- INDEX: `active`, `expires_at`
+- ÍNDICE: `active`, `expires_at`
 
-**Relationships:**
+**Relaciones:**
 - `coupons` → `subscriber_coupons` (1:N)
 
-**Policies:**
+**Políticas:**
 - No soft delete
 - Codes are case-insensitive when validating
 - Inactive coupon cannot be applied
 
 ---
 
-### 6. subscriber_coupons **[CORE - Polymorphic]**
+### 6. subscriber_coupons **[CORE - Polimórfico]**
 
-**Description:** Record of coupons applied by subscribers (prevents reuse).
+**Descripción:** Record of coupons applied by subscribers (prevents reuse).
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Polymorphic model class** |
-| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Polymorphic model ID** |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Clase del modelo polimórfico** |
+| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **ID del modelo polimórfico** |
 | `coupon_id` | BIGINT UNSIGNED | NO | FK → coupons.id |
 | `applied_at` | TIMESTAMP | NO | Application date |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- FOREIGN KEY: `coupon_id` → `coupons.id`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- CLAVE FORÁNEA: `coupon_id` → `coupons.id`
 - **UNIQUE: `subscriber_type` + `subscriber_id` + `coupon_id`** (prevents duplicate usage) 🆕
-- **INDEX: `subscriber_type`, `subscriber_id`** 🆕
+- **ÍNDICE: `subscriber_type`, `subscriber_id`** 🆕
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `subscriber_coupons` (1:N)
 - `coupons` → `subscriber_coupons` (1:N)
 
-**Policies:**
-- NO soft delete (audit)
+**Políticas:**
+- SIN borrado suave (auditoría)
 - A subscriber can have multiple coupons (different ones)
 - A subscriber CANNOT reuse the same coupon
 
 ---
 
-### 7. referrals **[OPTIONAL MODULE - Polymorphic]**
+### 7. referrals **[MÓDULO OPCIONAL - Polimórfico]**
 
-**Description:** Referral system with benefit tracking. Only created if `referrals` feature is enabled.
+**Descripción:** Referral system with benefit tracking. Only created if `referrals` feature is enabled.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | **`referrer_type`** 🆕 | **VARCHAR(255)** | **NO** | **Referrer polymorphic model class** |
 | **`referrer_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Referrer polymorphic model ID** |
 | **`referred_type`** 🆕 | **VARCHAR(255)** | **NO** | **Referred polymorphic model class** |
@@ -515,23 +569,23 @@ The package doesn't define what a "subscriber" is. It can be:
 | `referrer_benefit` | JSON | NO | Referrer benefits (discount, tokens, credit) |
 | `referred_benefit` | JSON | NO | Referred benefits (discount) |
 | `status` | ENUM | NO | pending, completed, expired |
-| `completed_at` | TIMESTAMP | YES | Completion date |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `completed_at` | TIMESTAMP | SÍ | Completion date |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `referrer_type`, `referrer_id`** 🆕
-- **INDEX: `referred_type`, `referred_id`** 🆕
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `referrer_type`, `referrer_id`** 🆕
+- **ÍNDICE: `referred_type`, `referred_id`** 🆕
 - UNIQUE: `code`
-- INDEX: `status`
+- ÍNDICE: `status`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** as referrer → `referrals` (1:N)
 - **Subscriber (polymorphic)** as referred → `referrals` (1:N)
 
-**Policies:**
-- NO soft delete (audit)
+**Políticas:**
+- SIN borrado suave (auditoría)
 - A subscriber can refer multiple people
 - A subscriber can be referred only once
 
@@ -551,71 +605,71 @@ The package doesn't define what a "subscriber" is. It can be:
 
 ---
 
-### 8. billing_data **[CORE - Polymorphic]**
+### 8. billing_data **[CORE - Polimórfico]**
 
-**Description:** Tax/billing data for electronic invoicing.
+**Descripción:** Tax/billing data for electronic invoicing.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | **`billable_type`** 🆕 | **VARCHAR(255)** | **NO** | **Billable polymorphic model class** |
 | **`billable_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Billable polymorphic model ID** |
 | `country` | ENUM | NO | MX, CO |
 | `tax_id` | VARCHAR(50) | NO | RFC (MX) or NIT (CO) |
 | `legal_name` | VARCHAR(255) | NO | Legal name |
-| `tax_regime` | VARCHAR(100) | YES | Tax regime (MX only) |
-| `postal_code` | VARCHAR(10) | YES | Postal code (MX only) |
-| `cfdi_use` | VARCHAR(10) | YES | CFDI use (MX only) |
-| `person_type` | ENUM | YES | natural, legal (CO only) |
-| `address` | TEXT | YES | Full address (CO only) |
-| `city` | VARCHAR(100) | YES | City (CO only) |
-| `state` | VARCHAR(100) | YES | State/Department (CO only) |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `tax_regime` | VARCHAR(100) | SÍ | Tax regime (MX only) |
+| `postal_code` | VARCHAR(10) | SÍ | Código postal (MX only) |
+| `cfdi_use` | VARCHAR(10) | SÍ | CFDI use (MX only) |
+| `person_type` | ENUM | SÍ | natural, legal (CO only) |
+| `address` | TEXT | SÍ | Full address (CO only) |
+| `city` | VARCHAR(100) | SÍ | City (CO only) |
+| `state` | VARCHAR(100) | SÍ | State/Department (CO only) |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
+**Índices:**
+- CLAVE PRIMARIA: `id`
 - **UNIQUE: `billable_type` + `billable_id`** (1:1 relationship) 🆕
-- INDEX: `country`
+- ÍNDICE: `country`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `billing_data` (1:1)
 
-**Policies:**
+**Políticas:**
 - NO soft delete
 - RFC/NIT validation according to each country format
 - MX fields are NULL for CO users and vice versa
 
 ---
 
-### 9. invoices **[OPTIONAL MODULE - Polymorphic]**
+### 9. invoices **[MÓDULO OPCIONAL - Polimórfico]**
 
-**Description:** Electronic invoice requests and records. Only created if `invoicing` feature is enabled.
+**Descripción:** Electronic invoice requests and records. Only created if `invoicing` feature is enabled.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | **`invoiceable_type`** 🆕 | **VARCHAR(255)** | **NO** | **Invoiceable polymorphic model class** |
 | **`invoiceable_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Invoiceable polymorphic model ID** |
 | `payment_id` | BIGINT UNSIGNED | NO | FK → payments.id |
-| `file_url` | VARCHAR(500) | YES | PDF file path |
+| `file_url` | VARCHAR(500) | SÍ | PDF file path |
 | `requested_at` | TIMESTAMP | NO | Request date |
-| `sent_at` | TIMESTAMP | YES | Sent date |
+| `sent_at` | TIMESTAMP | SÍ | Sent date |
 | `status` | ENUM | NO | requested, processing, completed, failed |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `invoiceable_type`, `invoiceable_id`** 🆕
-- FOREIGN KEY: `payment_id` → `payments.id`
-- INDEX: `status`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `invoiceable_type`, `invoiceable_id`** 🆕
+- CLAVE FORÁNEA: `payment_id` → `payments.id`
+- ÍNDICE: `status`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `invoices` (1:N)
 - `payments` → `invoices` (1:1)
 
-**Policies:**
+**Políticas:**
 - NO soft delete (tax audit)
 - A payment can have only one invoice
 - User can re-download invoice indefinitely
@@ -624,28 +678,28 @@ The package doesn't define what a "subscriber" is. It can be:
 
 ### 10. payment_retries
 
-**Description:** Record of failed payment retries.
+**Descripción:** Record of failed payment retries.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | `payment_id` | BIGINT UNSIGNED | NO | FK → payments.id |
 | `attempt` | INT | NO | Retry number (1, 2, 3) |
 | `tried_at` | TIMESTAMP | NO | Retry date and time |
-| `result` | TEXT | YES | Retry result (success or failure reason) |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `result` | TEXT | SÍ | Retry result (success or failure reason) |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- FOREIGN KEY: `payment_id` → `payments.id`
-- INDEX: `payment_id`, `tried_at`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- CLAVE FORÁNEA: `payment_id` → `payments.id`
+- ÍNDICE: `payment_id`, `tried_at`
 
-**Relationships:**
+**Relaciones:**
 - `payments` → `payment_retries` (1:N)
 
-**Policies:**
-- NO soft delete (audit)
+**Políticas:**
+- SIN borrado suave (auditoría)
 - Maximum 3 attempts per payment
 - Each retry is scheduled according to configured days
 
@@ -653,66 +707,70 @@ The package doesn't define what a "subscriber" is. It can be:
 
 ### 11. grace_periods
 
-**Description:** Grace periods granted for payment failures.
+**Descripción:** Períodos de gracia otorgados por fallos de pago.
 
-| Field | Type | Null | Description |
+**NOTE:** The grace period duration (field `ends_at`) is calculated using:
+1. `subscriptions.grace_period_months` if it exists
+2. Global configuration `config('subscriptions.grace_period.months')` if NULL
+
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | `subscription_id` | BIGINT UNSIGNED | NO | FK → subscriptions.id |
-| `started_at` | DATE | NO | Grace period start date |
-| `ends_at` | DATE | NO | Grace period end date (2 months later) |
-| `months_owed` | INT | NO | Months owed |
-| `amount_owed` | DECIMAL(10,2) | NO | Total amount owed |
-| `notifications_sent` | INT | NO | Number of notifications sent |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `started_at` | DATE | NO | Fecha de inicio del período de gracia |
+| `ends_at` | DATE | NO | Fecha de fin del período de gracia (meses personalizables) |
+| `months_owed` | INT | NO | Meses adeudados |
+| `amount_owed` | DECIMAL(10,2) | NO | Monto total adeudado |
+| `notifications_sent` | INT | NO | Número de notificaciones enviadas |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- FOREIGN KEY: `subscription_id` → `subscriptions.id`
-- INDEX: `subscription_id`, `ends_at`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- CLAVE FORÁNEA: `subscription_id` → `subscriptions.id`
+- ÍNDICE: `subscription_id`, `ends_at`
 
-**Relationships:**
+**Relaciones:**
 - `subscriptions` → `grace_periods` (1:N, but ideally 1:1 active)
 
-**Policies:**
-- NO soft delete (audit)
-- Fixed duration: 2 months
-- Reminders every 15 days (configurable)
-- Subscriber maintains full access during grace period
+**Políticas:**
+- SIN borrado suave (auditoría)
+- Duración personalizable: Usa `subscriptions.grace_period_months` o config global (por defecto 2 meses)
+- Recordatorios cada 15 días (configurable)
+- El suscriptor mantiene acceso completo durante el período de gracia
 
 ---
 
-### 12. notifications **[CORE - Polymorphic]**
+### 12. notifications **[CORE - Polimórfico]**
 
-**Description:** Log of all notifications sent (20+ types).
+**Descripción:** Log of all notifications sent (20+ tipos).
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | **`notifiable_type`** 🆕 | **VARCHAR(255)** | **NO** | **Notifiable polymorphic model class** |
 | **`notifiable_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Notifiable polymorphic model ID** |
-| `type` | VARCHAR(100) | NO | Notification type (20+ types) |
-| `sent_at` | TIMESTAMP | YES | Send date and time |
+| `type` | VARCHAR(100) | NO | tipo de notificación (20+ tipos) |
+| `sent_at` | TIMESTAMP | SÍ | Send date and time |
 | `status` | ENUM | NO | pending, sent, failed, bounced |
-| `metadata` | JSON | YES | Additional notification data |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `metadata` | JSON | SÍ | Datos adicionales de notificación |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `notifiable_type`, `notifiable_id`** 🆕
-- INDEX: `type`, `status`, `sent_at`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `notifiable_type`, `notifiable_id`** 🆕
+- ÍNDICE: `type`, `status`, `sent_at`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `notifications` (1:N)
 
-**Policies:**
-- NO soft delete (audit)
+**Políticas:**
+- SIN borrado suave (auditoría)
 - Allows manual resend if failed
 - Complete tracking for metrics
 
-**Notification types (20+):**
+**tipo de notificaciones (20+):**
 1. `welcome`
 2. `payment_success`
 3. `payment_reminder`
@@ -736,40 +794,40 @@ The package doesn't define what a "subscriber" is. It can be:
 
 ---
 
-### 13. audit_logs **[CORE - Polymorphic]**
+### 13. audit_logs **[CORE - Polimórfico]**
 
-**Description:** Audit log of all critical actions.
+**Descripción:** Audit log of all critical actions.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
 | **`auditable_type`** 🆕 | **VARCHAR(255)** | **YES** | **Auditable polymorphic model class (NULL for system)** |
 | **`auditable_id`** 🆕 | **BIGINT UNSIGNED** | **YES** | **Auditable polymorphic model ID (NULL for system)** |
-| `action` | VARCHAR(100) | NO | Action performed (create, update, delete, etc.) |
+| `action` | VARCHAR(100) | NO | Acción realizada (create, update, delete, etc.) |
 | `entity` | VARCHAR(100) | NO | Affected entity (subscription, payment, etc.) |
 | `entity_id` | BIGINT UNSIGNED | NO | Affected record ID |
-| `before` | JSON | YES | State before change |
-| `after` | JSON | YES | State after change |
-| `ip` | VARCHAR(45) | YES | IP from which action was performed |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `before` | JSON | SÍ | Estado antes del cambio |
+| `after` | JSON | SÍ | Estado después del cambio |
+| `ip` | VARCHAR(45) | SÍ | IP from which action was performed |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `auditable_type`, `auditable_id`** 🆕
-- INDEX: `entity`, `entity_id`, `created_at`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `auditable_type`, `auditable_id`** 🆕
+- ÍNDICE: `entity`, `entity_id`, `created_at`
 
-**Relationships:**
+**Relaciones:**
 - **Subscriber (polymorphic)** → `audit_logs` (1:N)
 
-**Policies:**
+**Políticas:**
 - NO soft delete (permanent audit)
 - Immutable (INSERT only)
 - Retention: indefinite or according to compliance policies
 
 ---
 
-## Relationships
+## Relaciones
 
 ### Simplified Relationship Diagram
 
@@ -792,7 +850,7 @@ payments (1) ─────────────────  (1) invoices [
 coupons (1) ──────────────────  (N) subscriber_coupons
 ```
 
-### Polymorphic Relationships Explanation
+### Relaciones Polimórficas Explanation
 
 The package uses **polymorphic relationships** for maximum flexibility. Instead of hardcoding a relationship to a `users` table, it uses two columns:
 
@@ -826,7 +884,7 @@ All these models would use the `HasSubscription` trait provided by the package.
 
 ---
 
-## Recommended Indexes
+## Índices Recomendados
 
 ### Critical Performance Indexes
 
@@ -837,27 +895,27 @@ All these models would use the `HasSubscription` trait provided by the package.
 SELECT * FROM subscriptions 
 WHERE next_billing_date <= CURDATE() 
 AND status = 'active';
--- INDEX: (next_billing_date, status)
+-- ÍNDICE: (next_billing_date, status)
 
 -- Get payments requiring 3DS without notification
 SELECT * FROM payments 
 WHERE requires_3ds = true 
 AND authentication_required_notified_at IS NULL;
--- INDEX: (requires_3ds, authentication_required_notified_at)
+-- ÍNDICE: (requires_3ds, authentication_required_notified_at)
 
 -- Get subscriber's current tokens
 SELECT * FROM tokens_usage 
 WHERE subscriber_type = ? AND subscriber_id = ?
 ORDER BY period_start DESC 
 LIMIT 1;
--- INDEX: (subscriber_type, subscriber_id, period_start)
+-- ÍNDICE: (subscriber_type, subscriber_id, period_start)
 
 -- Validate coupon
 SELECT * FROM coupons 
 WHERE code = ?  
 AND active = true 
 AND (expires_at IS NULL OR expires_at >= CURDATE());
--- INDEX: (code, active, expires_at)
+-- ÍNDICE: (code, active, expires_at)
 ```
 
 ### Additional Composite Indexes
@@ -882,7 +940,7 @@ WHERE status = 'pending';
 
 ---
 
-## Deletion Policies
+## Políticas de Eliminación
 
 ### Soft Delete Enabled
 
@@ -930,54 +988,54 @@ ON DELETE RESTRICT; -- Cannot delete subscription with payments
 
 ---
 
-## Summary of 3DS and Polymorphic Changes
+## Resumen de Cambios de 3DS y Polimórficos
 
 ### Tables Modified for Polymorphic Relationships
 
 **1. subscriptions:**
-- ✅ `subscriber_type` (VARCHAR 255) - Polymorphic model class
-- ✅ `subscriber_id` (BIGINT UNSIGNED) - Polymorphic model ID
-- ✅ Removed `user_id` foreign key
+- ✅ `subscriber_type` (VARCHAR 255) - Clase del modelo polimórfico
+- ✅ `subscriber_id` (BIGINT UNSIGNED) - ID del modelo polimórfico
+- ✅ Clave foránea eliminada
 
 **2. tokens_usage:**
 - ✅ `subscriber_type` (VARCHAR 255)
 - ✅ `subscriber_id` (BIGINT UNSIGNED)
-- ✅ Removed `user_id` foreign key
+- ✅ Clave foránea eliminada
 
 **3. subscriber_coupons (renamed from user_coupons):**
 - ✅ `subscriber_type` (VARCHAR 255)
 - ✅ `subscriber_id` (BIGINT UNSIGNED)
-- ✅ Removed `user_id` foreign key
-- ✅ Table renamed
+- ✅ Clave foránea eliminada
+- ✅ Tabla renombrada
 
 **4. referrals:**
 - ✅ `referrer_type` (VARCHAR 255)
 - ✅ `referrer_id` (BIGINT UNSIGNED)
 - ✅ `referred_type` (VARCHAR 255)
 - ✅ `referred_id` (BIGINT UNSIGNED)
-- ✅ Removed `referrer_id` and `referred_id` foreign keys to users
+- ✅ Clave foránea eliminadas a users
 
 **5. billing_data:**
 - ✅ `billable_type` (VARCHAR 255)
 - ✅ `billable_id` (BIGINT UNSIGNED)
-- ✅ Removed `user_id` foreign key
+- ✅ Clave foránea eliminada
 
 **6. invoices:**
 - ✅ `invoiceable_type` (VARCHAR 255)
 - ✅ `invoiceable_id` (BIGINT UNSIGNED)
-- ✅ Removed `user_id` foreign key
+- ✅ Clave foránea eliminada
 
 **7. notifications:**
 - ✅ `notifiable_type` (VARCHAR 255)
 - ✅ `notifiable_id` (BIGINT UNSIGNED)
-- ✅ Removed `user_id` foreign key
+- ✅ Clave foránea eliminada
 
 **8. audit_logs:**
 - ✅ `auditable_type` (VARCHAR 255, nullable)
 - ✅ `auditable_id` (BIGINT UNSIGNED, nullable)
-- ✅ Removed `user_id` foreign key
+- ✅ Clave foránea eliminada
 
-### Tables Modified for 3DS
+### Tablas Modificadas para 3DS
 
 **1. subscriptions:**
 - ✅ `mit_enabled` (BOOLEAN)
@@ -989,12 +1047,12 @@ ON DELETE RESTRICT; -- Cannot delete subscription with payments
 - ✅ `three_ds_redirect_url` (VARCHAR 500)
 - ✅ `three_ds_version` (VARCHAR 10)
 - ✅ `authentication_required_notified_at` (TIMESTAMP)
-- ✅ ENUM status updated: `requires_3ds`, `authenticating`, `authenticated`
+- ✅ ENUM status actualizado: `requires_3ds`, `authenticating`, `authenticated`
 
 **3. notifications:**
-- ✅ New type: `payment_authentication_required`
+- ✅ Nuevo tipo: `payment_authentication_required`
 
-### New Indexes for Polymorphic Relationships
+### Nuevos Índices para Relaciones Polimórficas
 
 ```sql
 CREATE INDEX idx_subscriber ON subscriptions(subscriber_type, subscriber_id);
@@ -1018,31 +1076,32 @@ CREATE INDEX idx_payments_auth_notified ON payments(authentication_required_noti
 
 ---
 
-## 📚 References
+## 📚 Referencias
 
-- [DATABASE_DDL.sql](./DATABASE_DDL.sql) - Complete SQL scripts
-- [3DS Integration](./3DS_INTEGRATION.md) - 3DS integration details
-- [API Webhooks](./API_WEBHOOKS.md) - Webhooks affecting these tables
-- [Polymorphic Relationships](./POLYMORPHIC_RELATIONSHIPS.md) - Usage guide
+- [DATABASE_DDL.sql](./DATABASE_DDL.sql) - Scripts SQL completos
+- [3DS Integration](./3DS_INTEGRATION.md) - Detalles de integración 3DS
+- [API Webhooks](./API_WEBHOOKS.md) - Webhooks que afectan estas tablas
+- [Polymorphic Relationships](./POLYMORPHIC_RELATIONSHIPS.md) - Guía de uso
 
 ---
 
 **Version:** 2.0  
 **Changes:**
-- ✅ Removed users table - package uses polymorphic relationships
-- ✅ All foreign keys to users converted to polymorphic (subscriber_type/subscriber_id, etc.)
-- ✅ Renamed user_coupons to subscriber_coupons
-- ✅ Added billable_type/billable_id to billing_data
-- ✅ Added referrer_type/referrer_id and referred_type/referred_id to referrals
-- ✅ Added notifiable_type/notifiable_id to notifications
-- ✅ Added invoiceable_type/invoiceable_id to invoices
-- ✅ Added auditable_type/auditable_id to audit_logs
-- ✅ Marked optional modules: tokens_usage, referrals, invoices
-- ✅ Marked core modules: subscriptions, payments, coupons, subscriber_coupons
-- ✅ Updated all indexes for polymorphic relationships
-- ✅ Added 3DS fields in payments and subscriptions
-- ✅ Added `payment_authentication_required` notification type
-- ✅ Complete documentation for each table
+- ✅ Tabla users eliminada - el paquete usa relaciones polimórficas
+- ✅ Todas las claves foráneas a users convertidas a polimórficas (subscriber_type/subscriber_id, etc.)
+- ✅ Renombrado user_coupons a subscriber_coupons
+- ✅ Agregado billable_type/billable_id a billing_data
+- ✅ Agregado referrer_type/referrer_id y referred_type/referred_id a referrals
+- ✅ Agregado notifiable_type/notifiable_id a notifications
+- ✅ Agregado invoiceable_type/invoiceable_id a invoices
+- ✅ Agregado auditable_type/auditable_id a audit_logs
+- ✅ Módulos opcionales marcados: tokens_usage, referrals, invoices
+- ✅ Módulos core marcados: subscriptions, payments, coupons, subscriber_coupons
+- ✅ Actualizados todos los índices para relaciones polimórficas
+- ✅ Agregados campos 3DS en payments y subscriptions
+- ✅ Agregado tipo de notificación `payment_authentication_required`
+- ✅ Agregados campos de períodos personalizables: trial_days, trial_ends_at, grace_period_months en subscriptions
+- ✅ Documentación completa para cada tabla
 
 ---
 

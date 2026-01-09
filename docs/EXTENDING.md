@@ -1,12 +1,12 @@
-# Extending the Package
-## Laravel Subscription Manager
+# Extender el Paquete
+## Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Table of Contents
+## Tabla de Contenidos
 
 1. [Custom Payment Gateways](#custom-payment-gateways)
 2. [Custom Notifications](#custom-notifications)
@@ -16,11 +16,11 @@
 
 ---
 
-## Custom Payment Gateways
+## Pasarelas de Pago Personalizadas
 
-### Create a Custom Gateway
+### Crear una Pasarela Personalizada
 
-Implement the `PaymentGatewayInterface`:
+Implementar la `PaymentGatewayInterface`:
 
 ```php
 <?php
@@ -36,11 +36,11 @@ class MyCustomGateway implements PaymentGatewayInterface
 {
     public function charge(array $data): PaymentResult
     {
-        // Implement your charge logic
-        // $data contains: amount, currency, card_token, description, etc.
+        // Implementar lógica de cargo
+        // $data contiene: amount, currency, card_token, description, etc.
         
         try {
-            // Call your payment provider API
+            // Llamar a la API de tu proveedor de pagos
             $response = $this->callGatewayAPI($data);
             
             return new PaymentResult([
@@ -61,18 +61,18 @@ class MyCustomGateway implements PaymentGatewayInterface
     
     public function createCardToken(array $cardData): string
     {
-        // Tokenize card data
-        // Return token string
+        // Tokenizar datos de tarjeta
+        // Retornar string de token
     }
     
     public function refund(string $transactionId, float $amount): RefundResult
     {
-        // Implement refund logic
+        // Implementar lógica de reembolso
     }
     
     public function validateWebhook(Request $request): bool
     {
-        // Validate webhook signature
+        // Validar firma del webhook
         $signature = $request->header('X-Gateway-Signature');
         $payload = $request->getContent();
         
@@ -107,7 +107,7 @@ CUSTOM_GATEWAY_API_KEY=your_api_key
 
 ---
 
-## Custom Notifications
+## Notificaciones Personalizadas
 
 ### Create Custom Notification
 
@@ -150,7 +150,7 @@ class CustomSubscriptionCreated extends SubscriptionNotification
 
 ### Replace Default Notification
 
-In your service provider:
+En tu proveedor de servicios:
 
 ```php
 use CesarAntolinez\LaravelSubscriptionManager\SubscriptionManager;
@@ -166,9 +166,9 @@ public function boot()
 
 ---
 
-## Event Listeners
+## Listeners de Eventos
 
-### Available Events
+### Eventos Disponibles
 
 ```php
 // Subscription events
@@ -335,7 +335,7 @@ class EnsureHasTokens
 
 ---
 
-## Custom Business Logic
+## Lógica de Negocio Personalizada
 
 ### Extend Subscription Model
 
@@ -518,7 +518,7 @@ class CanUpgradeToPlan implements Rule
 
 ## Package Extension Points
 
-### Service Provider Hooks
+### Hooks de Proveedor de Servicios
 
 ```php
 <?php
@@ -561,7 +561,7 @@ class AppServiceProvider extends ServiceProvider
 
 ---
 
-**Version:** 2.0  
+**Versión:** 2.0  
 **Last Updated:** January 2026
 
 ---

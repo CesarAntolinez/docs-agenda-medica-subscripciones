@@ -54,6 +54,9 @@ CREATE TABLE `subscriptions` (
     `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico',
     
     `plan_id` BIGINT UNSIGNED NOT NULL COMMENT 'Plan actual',
+    `trial_days` INT NULL COMMENT 'Trial personalizado en días (NULL = usar trial del plan)',
+    `trial_ends_at` DATE NULL COMMENT 'Fecha calculada de fin del trial',
+    `grace_period_months` INT NULL COMMENT 'Período de gracia personalizado en meses (NULL = usar configuración global de 2 meses)',
     `status` ENUM('trial', 'active', 'past_due', 'grace_period', 'cancelled', 'blocked') NOT NULL DEFAULT 'trial' COMMENT 'Estado de la suscripción',
     `periodicity` ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad de facturación',
     `starts_at` DATE NOT NULL COMMENT 'Fecha de inicio',
@@ -79,8 +82,9 @@ CREATE TABLE `subscriptions` (
     INDEX `idx_deleted_at` (`deleted_at`),
     INDEX `idx_mit_enabled` (`mit_enabled`),
     INDEX `idx_first_payment_3ds` (`first_payment_3ds_completed`),
-    INDEX `idx_renewal` (`next_billing_date`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Suscripciones - Relación polimórfica a cualquier modelo suscribible';
+    INDEX `idx_renewal` (`next_billing_date`, `status`),
+    INDEX `idx_trial_ends` (`trial_ends_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Suscripciones con relación polimórfica - trial y grace period personalizables';
 
 -- ============================================================================
 -- Tabla: tokens_usage [MÓDULO OPCIONAL - Relación Polimórfica]
@@ -298,6 +302,9 @@ CREATE TABLE `payment_retries` (
 -- ============================================================================
 -- Tabla: grace_periods
 -- Descripción:  Períodos de gracia por fallos de pago
+-- NOTA: La duración del grace period (campo ends_at) se calcula usando:
+--       1. subscriptions.grace_period_months si existe
+--       2. Configuración global config('subscriptions.grace_period.months') si es NULL
 -- ============================================================================
 CREATE TABLE `grace_periods` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

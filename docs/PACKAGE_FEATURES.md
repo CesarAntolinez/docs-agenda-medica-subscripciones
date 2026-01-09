@@ -1,41 +1,41 @@
-# Package Features
-## Laravel Subscription Manager
+# Características del Paquete
+## Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
-
----
-
-## 📑 Table of Contents
-
-1. [Overview](#overview)
-2. [Core Features](#core-features)
-3. [Optional Modules](#optional-modules)
-4. [Payment Gateway Support](#payment-gateway-support)
-5. [Security Features](#security-features)
-6. [Notification System](#notification-system)
-7. [Flexibility Features](#flexibility-features)
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Overview
+## 📑 Tabla de Contenidos
 
-Laravel Subscription Manager is a complete subscription management package designed for flexibility, security, and scalability. It uses **polymorphic relationships** to work with any model in your Laravel application, making it truly reusable across different project types.
-
-**Key Differentiators:**
-- ✅ Polymorphic relationships - subscribe Users, Companies, Teams, or any model
-- ✅ Multi-gateway support with abstraction layer
-- ✅ Built-in 3D Secure 2.0 implementation
-- ✅ Modular architecture - enable only what you need
-- ✅ Production-ready with comprehensive audit logging
+1. [Visión General](#visión-general)
+2. [Características Core](#características-core)
+3. [Módulos Opcionales](#módulos-opcionales)
+4. [Soporte de Pasarelas de Pago](#soporte-de-pasarelas-de-pago)
+5. [Características de Seguridad](#características-de-seguridad)
+6. [Sistema de Notificaciones](#sistema-de-notificaciones)
+7. [Características de Flexibilidad](#características-de-flexibilidad)
 
 ---
 
-## Core Features
+## Visión General
+
+Laravel Subscription Manager es un paquete completo de gestión de suscripciones diseñado para flexibilidad, seguridad y escalabilidad. Usa **relaciones polimórficas** para trabajar con cualquier modelo en tu aplicación Laravel, haciéndolo verdaderamente reutilizable en diferentes tipos de proyectos.
+
+**Diferenciadores Clave:**
+- ✅ Relaciones polimórficas - suscribir Usuarios, Empresas, Equipos o cualquier modelo
+- ✅ Soporte multi-pasarela con capa de abstracción
+- ✅ Implementación 3D Secure 2.0 integrada
+- ✅ Arquitectura modular - habilita solo lo que necesitas
+- ✅ Listo para producción con registro de auditoría completo
+
+---
+
+## Características Core
 
 ### 1. Subscription Plans Management
 
-**Description:** Flexible plan configuration with multiple periodicities and pricing.
+**Descripción:** Flexible plan configuration with multiple periodicities and pricing.
 
 **Features:**
 - Multiple plans with customizable names and descriptions
@@ -58,7 +58,7 @@ Laravel Subscription Manager is a complete subscription management package desig
 
 ### 2. Polymorphic Subscriptions
 
-**Description:** Subscribe any model in your application using the `HasSubscription` trait.
+**Descripción:** Subscribe any model in your application using the `HasSubscription` trait.
 
 **Features:**
 - Works with Users, Companies, Teams, Organizations, or custom models
@@ -91,7 +91,7 @@ class Team extends Model {
 
 ### 3. Payment Processing
 
-**Description:** Complete payment lifecycle management with retry logic and 3D Secure support.
+**Descripción:** Complete payment lifecycle management with retry logic and 3D Secure support.
 
 **Features:**
 - Multiple payment methods:
@@ -114,7 +114,7 @@ class Team extends Model {
 
 ### 4. Discount Coupons System ✅ **[CORE]**
 
-**Description:** Full-featured coupon system for promotions and discounts.
+**Descripción:** Full-featured coupon system for promotions and discounts.
 
 **Features:**
 - Coupon types:
@@ -146,7 +146,7 @@ class Team extends Model {
 
 ### 5. Grace Period Management
 
-**Description:** Subscriber-friendly grace period system for failed payments.
+**Descripción:** Subscriber-friendly grace period system for failed payments.
 
 **Features:**
 - Configurable grace period duration (default: 2 months)
@@ -167,7 +167,7 @@ class Team extends Model {
 
 ### 6. Billing Data Management
 
-**Description:** Tax and billing information for electronic invoicing (polymorphic).
+**Descripción:** Tax and billing information for electronic invoicing (polymorphic).
 
 **Features:**
 - Country-specific fields:
@@ -187,7 +187,7 @@ class Team extends Model {
 
 ### 7. Comprehensive Notifications
 
-**Description:** 20+ transactional notification types with queue support.
+**Descripción:** 20+ transactional notification types with queue support.
 
 **Features:**
 - Email notifications for all subscription events
@@ -218,7 +218,7 @@ class Team extends Model {
 
 ### 8. Audit Logging
 
-**Description:** Complete audit trail of all critical actions.
+**Descripción:** Complete audit trail of all critical actions.
 
 **Features:**
 - Action tracking: create, update, delete
@@ -236,11 +236,11 @@ class Team extends Model {
 
 ---
 
-## Optional Modules
+## Módulos Opcionales
 
 ### 9. Token Consumption Tracking **[OPTIONAL]**
 
-**Description:** Track token/credit consumption for usage-based billing.
+**Descripción:** Track token/credit consumption for usage-based billing.
 
 **Enable via config:**
 ```php
@@ -268,7 +268,7 @@ class Team extends Model {
 
 ### 10. Referral System **[OPTIONAL]**
 
-**Description:** Complete referral program with configurable benefits.
+**Descripción:** Complete referral program with configurable benefits.
 
 **Enable via config:**
 ```php
@@ -297,7 +297,7 @@ class Team extends Model {
 
 ### 11. Electronic Invoicing **[OPTIONAL]**
 
-**Description:** Electronic invoice management with external PAC/DIAN integration.
+**Descripción:** Electronic invoice management with external PAC/DIAN integration.
 
 **Enable via config:**
 ```php
@@ -324,11 +324,11 @@ class Team extends Model {
 
 ---
 
-## Payment Gateway Support
+## Soporte de Pasarelas de Pago
 
 ### Multi-Gateway Architecture
 
-**Description:** Abstracted payment gateway interface for easy integration.
+**Descripción:** Abstracted payment gateway interface for easy integration.
 
 **Included Gateways:**
 - ✅ **Openpay** (Mexico/Colombia) - Full implementation with 3DS
@@ -345,7 +345,7 @@ interface PaymentGatewayInterface {
 }
 ```
 
-**Configuration:**
+**Configuración:**
 ```php
 'payment_gateway' => env('PAYMENT_GATEWAY', 'openpay'),
 'gateways' => [
@@ -363,11 +363,11 @@ interface PaymentGatewayInterface {
 
 ---
 
-## Security Features
+## Características de Seguridad
 
 ### 1. 3D Secure 2.0 Implementation
 
-**Description:** Complete 3DS flow for secure payments and fraud reduction.
+**Descripción:** Complete 3DS flow for secure payments and fraud reduction.
 
 **Features:**
 - Strong Customer Authentication (SCA) compliance
@@ -412,7 +412,7 @@ interface PaymentGatewayInterface {
 
 ---
 
-## Flexibility Features
+## Características de Flexibilidad
 
 ### 1. Polymorphic Relationships
 
@@ -526,9 +526,9 @@ interface PaymentGatewayInterface {
 
 ---
 
-## Comparison: Core vs Optional
+## Comparison: Core vs Opcional
 
-| Feature | Category | Required? | Database Tables |
+| Feature | Category | Requerido? | Database Tables |
 |---------|----------|-----------|-----------------|
 | Subscription Management | Core | ✅ Yes | subscriptions, plans |
 | Payment Processing | Core | ✅ Yes | payments, payment_retries |
@@ -537,9 +537,9 @@ interface PaymentGatewayInterface {
 | Billing Data | Core | ✅ Yes | billing_data |
 | Notifications | Core | ✅ Yes | notifications |
 | Audit Logs | Core | ✅ Yes | audit_logs |
-| Token Tracking | Optional | ❌ No | tokens_usage |
-| Referral System | Optional | ❌ No | referrals |
-| Electronic Invoicing | Optional | ❌ No | invoices |
+| Token Tracking | Opcional | ❌ No | tokens_usage |
+| Referral System | Opcional | ❌ No | referrals |
+| Electronic Invoicing | Opcional | ❌ No | invoices |
 
 ---
 
@@ -550,7 +550,7 @@ interface PaymentGatewayInterface {
 - PHP 8.1+
 - MySQL 8.0+ / PostgreSQL 13+
 
-**Optional:**
+**Opcional:**
 - Redis (recommended for queues and cache)
 - Supervisor (for queue workers)
 
@@ -563,15 +563,15 @@ interface PaymentGatewayInterface {
 
 ## Next Steps
 
-**For Installation:** See [INSTALLATION.md](./INSTALLATION.md)  
-**For Configuration:** See [CONFIGURATION.md](./CONFIGURATION.md)  
-**For Extending:** See [EXTENDING.md](./EXTENDING.md)  
-**For Database Details:** See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
+**Para Instalación:** See [INSTALLATION.md](./INSTALLATION.md)  
+**Para Configuración:** See [CONFIGURATION.md](./CONFIGURATION.md)  
+**Para Extender:** See [EXTENDING.md](./EXTENDING.md)  
+**Para Detalles de Base de Datos:** See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
 
 ---
 
-**Version:** 2.0  
-**Last Updated:** January 2026
+**Versión:** 2.0  
+**Última Actualización:** Enero 2026
 
 ---
 

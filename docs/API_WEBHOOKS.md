@@ -112,6 +112,13 @@ Content-Type: application/json
   "periodicity": "monthly",
   "token_id": "tok_abc123",  // Token de Openpay. js
   "device_session_id": "session_xyz",
+  
+  // NUEVO: Trial personalizado (opcional)
+  "trial_days": 60,  // NULL = usar trial del plan
+  
+  // NUEVO: Grace period personalizado (opcional)
+  "grace_period_months": 3,  // NULL = usar config global (2 meses)
+  
   "billing_data": {
     "tax_id": "XAXX010101000",
     "legal_name": "Empresa SA de CV",
@@ -126,7 +133,9 @@ Response 201:
   "data": {
     "id": 123,
     "status": "trial",
-    "trial_ends_at": "2026-01-29",
+    "trial_days": 60,  // Personalizado
+    "trial_ends_at": "2026-03-10",
+    "grace_period_months": 3,  // Personalizado
     "payment":  {
       "id": 456,
       "status": "requires_3ds",  // 🔒 Requiere autenticación

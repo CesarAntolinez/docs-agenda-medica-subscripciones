@@ -1,26 +1,26 @@
-# Polymorphic Relationships Guide
-## Laravel Subscription Manager Package
+# Guía de Relaciones Polimórficas
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
-
----
-
-## Overview
-
-This package uses **polymorphic relationships** to provide maximum flexibility. Instead of being tied to a specific `users` table, it can work with **any model** in your application.
-
-**Benefits:**
-- Subscribe Users, Companies, Teams, Organizations, or any custom model
-- No hard-coded dependencies on user table structure
-- Multi-tenant ready
-- B2B and B2C compatible
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Quick Start
+## Visión General
 
-### 1. Add Trait to Your Model
+Este paquete usa **relaciones polimórficas** para proporcionar máxima flexibilidad. En lugar de estar vinculado a una tabla `users` específica, puede trabajar con **cualquier modelo** en tu aplicación.
+
+**Beneficios:**
+- Suscribir Usuarios, Empresas, Equipos, Organizaciones o cualquier modelo personalizado
+- Sin dependencias codificadas de forma rígida en la estructura de tabla de usuarios
+- Listo para multi-tenencia
+- Compatible con B2B y B2C
+
+---
+
+## Inicio Rápido
+
+### 1. Agregar Trait a Tu Modelo
 
 ```php
 use CesarAntolinez\LaravelSubscriptionManager\Traits\HasSubscription;
@@ -31,7 +31,7 @@ class User extends Authenticatable
 }
 ```
 
-### 2. Subscribe to a Plan
+### 2. Suscribirse a un Plan
 
 ```php
 $user = User::find(1);
@@ -40,44 +40,44 @@ $plan = Plan::find(1);
 $subscription = $user->subscribeToPlan($plan);
 ```
 
-That's it! The package handles the rest.
+¡Eso es todo! El paquete se encarga del resto.
 
 ---
 
-## How It Works
+## Cómo Funciona
 
-### Database Structure
+### Estructura de Base de Datos
 
-Instead of:
+En lugar de:
 ```sql
--- Traditional approach (NOT used)
+-- Enfoque tradicional (NO usado)
 subscriptions (
     user_id → users.id
 )
 ```
 
-The package uses:
+el paquete usa:
 ```sql
--- Polymorphic approach (USED)
+-- Enfoque polimórfico (USADO)
 subscriptions (
     subscriber_type → 'App\Models\User'
     subscriber_id → 1
 )
 ```
 
-This allows the same `subscriptions` table to reference different models.
+Esto permite que la misma tabla `subscriptions` haga referencia a diferentes modelos.
 
 ---
 
-## Usage Examples
+## Ejemplos de Uso
 
-### Example 1: User Subscriptions
+### Ejemplo 1: User Subscriptions
 
 ```php
 use App\Models\User;
 use CesarAntolinez\LaravelSubscriptionManager\Models\Plan;
 
-// Get user and plan
+// Obtener usuario y plan
 $user = User::find(1);
 $plan = Plan::where('name', 'Professional Plan')->first();
 
@@ -95,7 +95,7 @@ echo $subscription->plan->name;
 echo $subscription->status;
 ```
 
-### Example 2: Company Subscriptions
+### Ejemplo 2: Company Subscriptions
 
 ```php
 use App\Models\Company;
@@ -125,7 +125,7 @@ if ($company->hasActiveSubscription()) {
 }
 ```
 
-### Example 3: Team Subscriptions
+### Ejemplo 3: Team Subscriptions
 
 ```php
 use App\Models\Team;
@@ -192,7 +192,7 @@ $model->isOnGracePeriod(); // boolean
 // Check if subscription is blocked
 $model->isSubscriptionBlocked(); // boolean
 
-// Check subscription status
+// Verificar estado de suscripción
 $status = $model->subscriptionStatus(); // 'trial', 'active', 'past_due', etc.
 ```
 
@@ -291,17 +291,17 @@ You can have multiple different models that can subscribe:
 
 // But you can use the trait on multiple models:
 
-// User subscriptions
+// Suscripciones de usuario
 class User extends Authenticatable {
     use HasSubscription;
 }
 
-// Company subscriptions
+// Suscripciones de empresa
 class Company extends Model {
     use HasSubscription;
 }
 
-// Team subscriptions
+// Suscripciones de equipo
 class Team extends Model {
     use HasSubscription;
 }
@@ -494,7 +494,7 @@ if ($vendor->hasActiveSubscription()) {
 
 ---
 
-## Best Practices
+## Mejores Prácticas
 
 1. **Use Type Hints:**
 ```php
@@ -530,7 +530,7 @@ Event::listen(SubscriptionCreated::class, function ($event) {
 
 ---
 
-## Troubleshooting
+## Resolución de Problemas
 
 **Issue: Trait methods not found**
 ```php
@@ -559,7 +559,7 @@ Example: User::whereHas('subscriptions', fn($q) => $q->where('status', 'active')
 
 ---
 
-**Version:** 2.0  
+**Versión:** 2.0  
 **Last Updated:** January 2026
 
 ---

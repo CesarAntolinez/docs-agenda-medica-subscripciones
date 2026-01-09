@@ -1,9 +1,9 @@
 # Casos de Uso Detallados
 ## Sistema de Suscripciones - Agenda Médica SaaS
 
-**Versión:** 1.1  
+**Versión:** 1.2  
 **Fecha:** Enero 2026  
-**Actualización:** Casos de uso 3D Secure (3DS)
+**Actualización:** Casos de uso 3D Secure (3DS) + Períodos Personalizables
 
 ---
 
@@ -34,6 +34,10 @@
 20. [UC-020: Autenticación 3DS en primer pago](#uc-020-autenticación-3ds-en-primer-pago)
 21. [UC-021: Renovación automática con fallo por 3DS](#uc-021-renovación-automática-con-fallo-por-3ds)
 22. [UC-022: Usuario autentica pago pendiente](#uc-022-usuario-autentica-pago-pendiente)
+
+### 🆕 Casos de Uso Períodos Personalizables (nuevos)
+23. [UC-023: Aplicar Trial Personalizado (Admin)](#uc-023-aplicar-trial-personalizado-admin)
+24. [UC-024: Ajustar Grace Period Personalizado (Admin)](#uc-024-ajustar-grace-period-personalizado-admin)
 
 ---
 
@@ -1468,6 +1472,126 @@ Usuario hace clic en email de autenticación requerida y completa el proceso 3DS
 - **Tiempo promedio:** 1-3 minutos
 - Link debe funcionar en cualquier dispositivo (responsive)
 - Considerar deep linking a app bancaria si usuario está en móvil
+
+---
+
+## UC-023: Aplicar Trial Personalizado (Admin)
+
+**Identificador:** UC-023 🆕  
+**Nombre:** Aplicar trial personalizado a suscripción  
+**Actores:** Administrador, Sistema  
+**Prioridad:** Media  
+**Estado:** Activo  
+
+### Descripción
+Admin ajusta manualmente el período de trial de un usuario (promoción, corrección, cliente especial).
+
+### Precondiciones
+- Admin autenticado con permisos
+- Suscripción existe
+- Usuario en estado `trial` o antes de activar suscripción
+
+### Flujo Principal
+1. Admin accede a panel de gestión de suscripciones
+2. Busca usuario por email/ID
+3. Selecciona "Ajustar Trial"
+4. Sistema muestra:
+   - Trial actual: X días (del plan)
+   - Trial personalizado: NULL (sin personalización)
+5. Admin ingresa nuevo valor: 60 días
+6. Sistema valida (0-365 días)
+7. Sistema actualiza `subscriptions.trial_days = 60`
+8. Sistema recalcula `trial_ends_at = starts_at + 60 días`
+9. Sistema registra en audit_logs
+10. Sistema envía email al usuario notificando extensión
+11. Usuario recibe 60 días de trial en lugar de 30
+
+### Flujo Alternativo 1: Eliminar Trial
+- En paso 5, admin ingresa `0`
+- Sistema elimina trial → suscripción pasa a `active` inmediatamente
+- Sistema intenta primer cobro
+
+### Flujo Alternativo 2: Restaurar Trial del Plan
+- En paso 5, admin selecciona "Usar trial del plan"
+- Sistema actualiza `trial_days = NULL`
+- Sistema recalcula `trial_ends_at` usando `plan.trial_days`
+
+### Postcondiciones
+- `subscriptions.trial_days` actualizado
+- `subscriptions.trial_ends_at` recalculado
+- Usuario notificado
+- Audit log registrado
+
+### Reglas de Negocio
+- RN-052: Solo admin puede modificar trials manualmente
+- RN-053: Valor válido: 0-365 días o NULL
+- RN-054: Si trial ya expiró, no se puede extender (crear nueva suscripción)
+
+### Excepciones
+- EX-018: Si suscripción ya está activa → No permitir cambio de trial
+- EX-019: Si valor fuera de rango → Mostrar error de validación
+
+### Notas Adicionales
+- Casos de uso comunes: promociones especiales, compensación por problemas técnicos
+- Registrar justificación en audit_logs para cumplimiento
+
+---
+
+## UC-024: Ajustar Grace Period Personalizado (Admin)
+
+**Identificador:** UC-024 🆕  
+**Nombre:** Ajustar período de gracia personalizado  
+**Actores:** Administrador, Sistema  
+**Prioridad:** Media  
+**Estado:** Activo  
+
+### Descripción
+Admin ajusta manualmente el período de gracia para un cliente específico (premium, problemático, excepcional).
+
+### Precondiciones
+- Admin autenticado
+- Suscripción existe
+- Suscripción puede estar en cualquier estado
+
+### Flujo Principal
+1. Admin accede a configuración de suscripción
+2. Busca usuario
+3. Selecciona "Ajustar Grace Period"
+4. Sistema muestra:
+   - Grace period actual: 2 meses (config global)
+   - Grace period personalizado: NULL
+5. Admin ingresa nuevo valor: 6 meses (cliente premium)
+6. Sistema valida (0-12 meses)
+7. Sistema actualiza `subscriptions.grace_period_months = 6`
+8. Sistema registra en audit_logs con justificación
+9. Si hay grace period activo:
+   - Sistema recalcula `grace_periods.ends_at`
+   - Sistema actualiza fechas de recordatorios
+10. Usuario tendrá 6 meses de gracia en futuros fallos de pago
+
+### Flujo Alternativo: Sin Grace (Bloqueo Inmediato)
+- En paso 5, admin ingresa `0`
+- Sistema marca `grace_period_months = 0`
+- En futuros fallos, suscripción pasa directamente a `blocked`
+
+### Postcondiciones
+- Grace period personalizado aplicado
+- Audit log completo
+- Si grace activo, fechas actualizadas
+
+### Reglas de Negocio
+- RN-055: Valor válido: 0-12 meses o NULL
+- RN-056: 0 = bloqueo inmediato sin grace
+- RN-057: NULL = usar config global (2 meses)
+- RN-058: Cambios aplican a futuros grace periods, no retroactivos (excepto si ya hay uno activo)
+
+### Excepciones
+- EX-020: Si valor fuera de rango → Mostrar error de validación
+- EX-021: Si grace period activo y se reduce tiempo → Confirmar con admin
+
+### Notas Adicionales
+- Casos de uso: clientes premium (mayor tolerancia), clientes problemáticos (menor tolerancia)
+- Registrar justificación obligatoria en audit_logs
 
 ---
 
@@ -3437,9 +3561,13 @@ Cada caso de uso debe tener:
 
 ---
 
-**Versión:** 1.1  
-**Total casos de uso:** 22 (19 originales + 3 nuevos de 3DS)  
+**Versión:** 1.2  
+**Total casos de uso:** 24 (19 originales + 3 de 3DS + 2 de períodos personalizables)  
 **Última actualización:** Enero 2026  
+
+**Cambios en v1.2:**
+- ✅ Agregado UC-023: Aplicar trial personalizado (Admin)
+- ✅ Agregado UC-024: Ajustar grace period personalizado (Admin)
 
 **Cambios en v1.1:**
 - ✅ Agregado UC-020: Autenticación 3DS primer pago
