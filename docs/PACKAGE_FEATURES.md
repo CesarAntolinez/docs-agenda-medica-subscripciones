@@ -363,7 +363,7 @@ interface PaymentGatewayInterface {
 
 ---
 
-## Seguridad Features
+## Características de Seguridad
 
 ### 1. 3D Secure 2.0 Implementation
 
@@ -563,15 +563,15 @@ interface PaymentGatewayInterface {
 
 ## Next Steps
 
-**For Installation:** See [INSTALLATION.md](./INSTALLATION.md)  
-**For Configuración:** See [CONFIGURATION.md](./CONFIGURATION.md)  
-**For Extending:** See [EXTENDING.md](./EXTENDING.md)  
-**For Database Details:** See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
+**Para Instalación:** See [INSTALLATION.md](./INSTALLATION.md)  
+**Para Configuración:** See [CONFIGURATION.md](./CONFIGURATION.md)  
+**Para Extender:** See [EXTENDING.md](./EXTENDING.md)  
+**Para Detalles de Base de Datos:** See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
 
 ---
 
 **Versión:** 2.0  
-**Last Updated:** January 2026
+**Última Actualización:** Enero 2026
 
 ---
 
