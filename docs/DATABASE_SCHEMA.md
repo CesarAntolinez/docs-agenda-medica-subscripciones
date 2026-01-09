@@ -770,7 +770,7 @@ $gracePeriod = GracePeriod::create([
 - Allows manual resend if failed
 - Complete tracking for metrics
 
-**tipo de notificacións (20+):**
+**tipo de notificaciones (20+):**
 1. `welcome`
 2. `payment_success`
 3. `payment_reminder`
@@ -1013,7 +1013,7 @@ ON DELETE RESTRICT; -- Cannot delete subscription with payments
 - ✅ `referrer_id` (BIGINT UNSIGNED)
 - ✅ `referred_type` (VARCHAR 255)
 - ✅ `referred_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea eliminadas to users
+- ✅ Clave foránea eliminadas a users
 
 **5. billing_data:**
 - ✅ `billable_type` (VARCHAR 255)
