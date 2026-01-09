@@ -1,10 +1,10 @@
 -- ============================================================================
--- DATABASE DDL - Laravel Subscription Manager Package
--- Generic Subscription Management System
+-- DATABASE DDL - Paquete Gestor de Suscripciones Laravel
+-- Sistema Genérico de Gestión de Suscripciones
 -- ============================================================================
 -- Versión: 2.0
 -- Fecha:  Enero 2026
--- Actualización: Polymorphic Relationships (subscriber_type/subscriber_id)
+-- Actualización: Relaciones Polimórficas (subscriber_type/subscriber_id)
 -- ============================================================================
 
 -- Configuración de base de datos
@@ -12,13 +12,13 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================================
--- NOTE: User/Subscriber table is NOT included in this package
--- The package uses POLYMORPHIC RELATIONSHIPS to work with any model:
+-- NOTA: La tabla User/Subscriber NO está incluida en este paquete
+-- El paquete usa RELACIONES POLIMÓRFICAS para trabajar con cualquier modelo:
 --   - App\Models\User
 --   - App\Models\Company
 --   - App\Models\Team
 --   - App\Models\Organization
--- The host application must provide a "subscribable" model with HasSubscription trait
+-- La aplicación host debe proporcionar un modelo "suscribible" con el trait HasSubscription
 -- ============================================================================
 
 -- ============================================================================
@@ -43,31 +43,31 @@ CREATE TABLE `plans` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Planes de suscripción';
 
 -- ============================================================================
--- Tabla: subscriptions [CORE - Polymorphic Relationship]
--- Descripción: Subscriptions linked to any subscribable model
+-- Tabla: subscriptions [CORE - Relación Polimórfica]
+-- Descripción: Suscripciones vinculadas a cualquier modelo suscribible
 -- ============================================================================
 CREATE TABLE `subscriptions` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship (can be User, Company, Team, etc.)
-    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Polymorphic model class (App\\Models\\User, App\\Models\\Company, etc.)',
-    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'Polymorphic model ID',
+    -- Relación Polimórfica (puede ser User, Company, Team, etc.)
+    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico (App\\Models\\User, App\\Models\\Company, etc.)',
+    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico',
     
-    `plan_id` BIGINT UNSIGNED NOT NULL COMMENT 'Current plan',
-    `status` ENUM('trial', 'active', 'past_due', 'grace_period', 'cancelled', 'blocked') NOT NULL DEFAULT 'trial' COMMENT 'Subscription status',
-    `periodicity` ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Billing periodicity',
-    `starts_at` DATE NOT NULL COMMENT 'Start date',
-    `ends_at` DATE NULL COMMENT 'End date (NULL if active)',
-    `next_billing_date` DATE NOT NULL COMMENT 'Next billing date',
-    `card_token` VARCHAR(255) NULL COMMENT 'Tokenized card from payment gateway',
-    `manual_payment_reference` VARCHAR(255) NULL COMMENT 'Manual payment reference',
-    `mit_enabled` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'MIT enabled for recurring payments',
-    `first_payment_3ds_completed` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'First payment with 3DS successful',
-    `pending_plan_id` BIGINT UNSIGNED NULL COMMENT 'Scheduled plan change (downgrade)',
-    `pending_plan_change_date` DATE NULL COMMENT 'Scheduled change date',
+    `plan_id` BIGINT UNSIGNED NOT NULL COMMENT 'Plan actual',
+    `status` ENUM('trial', 'active', 'past_due', 'grace_period', 'cancelled', 'blocked') NOT NULL DEFAULT 'trial' COMMENT 'Estado de la suscripción',
+    `periodicity` ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad de facturación',
+    `starts_at` DATE NOT NULL COMMENT 'Fecha de inicio',
+    `ends_at` DATE NULL COMMENT 'Fecha de fin (NULL si está activa)',
+    `next_billing_date` DATE NOT NULL COMMENT 'Próxima fecha de facturación',
+    `card_token` VARCHAR(255) NULL COMMENT 'Tarjeta tokenizada de la pasarela de pagos',
+    `manual_payment_reference` VARCHAR(255) NULL COMMENT 'Referencia de pago manual',
+    `mit_enabled` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'MIT habilitado para pagos recurrentes',
+    `first_payment_3ds_completed` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Primer pago con 3DS exitoso',
+    `pending_plan_id` BIGINT UNSIGNED NULL COMMENT 'Cambio de plan programado (downgrade)',
+    `pending_plan_change_date` DATE NULL COMMENT 'Fecha de cambio programada',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    `deleted_at` TIMESTAMP NULL COMMENT 'Soft delete',
+    `deleted_at` TIMESTAMP NULL COMMENT 'Borrado suave',
     
     FOREIGN KEY `fk_subscriptions_plan` (`plan_id`) REFERENCES `plans`(`id`) ON DELETE RESTRICT,
     FOREIGN KEY `fk_subscriptions_pending_plan` (`pending_plan_id`) REFERENCES `plans`(`id`) ON DELETE SET NULL,
@@ -80,25 +80,25 @@ CREATE TABLE `subscriptions` (
     INDEX `idx_mit_enabled` (`mit_enabled`),
     INDEX `idx_first_payment_3ds` (`first_payment_3ds_completed`),
     INDEX `idx_renewal` (`next_billing_date`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Subscriptions - Polymorphic relation to any subscribable model';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Suscripciones - Relación polimórfica a cualquier modelo suscribible';
 
 -- ============================================================================
--- Tabla: tokens_usage [OPTIONAL MODULE - Polymorphic Relationship]
--- Descripción: Token consumption tracking per billing period
--- NOTE: Only created if 'tokens' feature is enabled in package config
+-- Tabla: tokens_usage [MÓDULO OPCIONAL - Relación Polimórfica]
+-- Descripción: Seguimiento de consumo de tokens por período de facturación
+-- NOTA: Solo se crea si la característica 'tokens' está habilitada en la configuración del paquete
 -- ============================================================================
 CREATE TABLE `tokens_usage` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship
-    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Polymorphic model class',
-    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'Polymorphic model ID',
+    -- Relación Polimórfica
+    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico',
+    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico',
     
-    `subscription_id` BIGINT UNSIGNED NOT NULL COMMENT 'Subscription',
-    `period_start` DATE NOT NULL COMMENT 'Period start',
-    `period_end` DATE NOT NULL COMMENT 'Period end',
-    `used` INT NOT NULL DEFAULT 0 COMMENT 'Tokens used',
-    `total` INT NOT NULL COMMENT 'Total tokens for period',
+    `subscription_id` BIGINT UNSIGNED NOT NULL COMMENT 'Suscripción',
+    `period_start` DATE NOT NULL COMMENT 'Inicio del período',
+    `period_end` DATE NOT NULL COMMENT 'Fin del período',
+    `used` INT NOT NULL DEFAULT 0 COMMENT 'Tokens usados',
+    `total` INT NOT NULL COMMENT 'Total de tokens para el período',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -108,7 +108,7 @@ CREATE TABLE `tokens_usage` (
     INDEX `idx_subscription_id` (`subscription_id`),
     INDEX `idx_period_start` (`period_start`),
     INDEX `idx_subscriber_period` (`subscriber_type`, `subscriber_id`, `period_start` DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Token consumption tracking [OPTIONAL]';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Seguimiento de consumo de tokens [OPCIONAL]';
 
 -- ============================================================================
 -- Tabla: payments [ACTUALIZADO - 3DS]
@@ -169,18 +169,18 @@ CREATE TABLE `coupons` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cupones de descuento';
 
 -- ============================================================================
--- Tabla: subscriber_coupons [CORE - Polymorphic Relationship]
--- Descripción: Coupons applied by subscribers (prevents reuse)
+-- Tabla: subscriber_coupons [CORE - Relación Polimórfica]
+-- Descripción: Cupones aplicados por suscriptores (previene reutilización)
 -- ============================================================================
 CREATE TABLE `subscriber_coupons` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship
-    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Polymorphic model class',
-    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'Polymorphic model ID',
+    -- Relación Polimórfica
+    `subscriber_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico',
+    `subscriber_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico',
     
-    `coupon_id` BIGINT UNSIGNED NOT NULL COMMENT 'Coupon',
-    `applied_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Application date',
+    `coupon_id` BIGINT UNSIGNED NOT NULL COMMENT 'Cupón',
+    `applied_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de aplicación',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -189,29 +189,29 @@ CREATE TABLE `subscriber_coupons` (
     UNIQUE KEY `uk_subscriber_coupon` (`subscriber_type`, `subscriber_id`, `coupon_id`),
     INDEX `idx_subscriber` (`subscriber_type`, `subscriber_id`),
     INDEX `idx_coupon_id` (`coupon_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Coupons applied by subscribers [CORE]';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cupones aplicados por suscriptores [CORE]';
 
 -- ============================================================================
--- Tabla: referrals [OPTIONAL MODULE - Polymorphic Relationship]
--- Descripción: Referral system with benefit tracking
--- NOTE: Only created if 'referrals' feature is enabled in package config
+-- Tabla: referrals [MÓDULO OPCIONAL - Relación Polimórfica]
+-- Descripción: Sistema de referidos con seguimiento de beneficios
+-- NOTA: Solo se crea si la característica 'referrals' está habilitada en la configuración del paquete
 -- ============================================================================
 CREATE TABLE `referrals` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship for Referrer
-    `referrer_type` VARCHAR(255) NOT NULL COMMENT 'Referrer polymorphic model class',
-    `referrer_id` BIGINT UNSIGNED NOT NULL COMMENT 'Referrer polymorphic model ID',
+    -- Relación Polimórfica para el Referidor
+    `referrer_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico del referidor',
+    `referrer_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico del referidor',
     
-    -- Polymorphic Relationship for Referred
-    `referred_type` VARCHAR(255) NOT NULL COMMENT 'Referred polymorphic model class',
-    `referred_id` BIGINT UNSIGNED NOT NULL COMMENT 'Referred polymorphic model ID',
+    -- Relación Polimórfica para el Referido
+    `referred_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico del referido',
+    `referred_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico del referido',
     
-    `code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Unique referral code',
-    `referrer_benefit` JSON NOT NULL COMMENT 'Referrer benefits (discount, tokens, credit)',
-    `referred_benefit` JSON NOT NULL COMMENT 'Referred benefits (discount)',
-    `status` ENUM('pending', 'completed', 'expired') NOT NULL DEFAULT 'pending' COMMENT 'Referral status',
-    `completed_at` TIMESTAMP NULL COMMENT 'Completion date',
+    `code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único de referido',
+    `referrer_benefit` JSON NOT NULL COMMENT 'Beneficios del referidor (descuento, tokens, crédito)',
+    `referred_benefit` JSON NOT NULL COMMENT 'Beneficios del referido (descuento)',
+    `status` ENUM('pending', 'completed', 'expired') NOT NULL DEFAULT 'pending' COMMENT 'Estado del referido',
+    `completed_at` TIMESTAMP NULL COMMENT 'Fecha de completado',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -219,53 +219,53 @@ CREATE TABLE `referrals` (
     INDEX `idx_referred` (`referred_type`, `referred_id`),
     INDEX `idx_code` (`code`),
     INDEX `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Referral system [OPTIONAL]';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sistema de referidos [OPCIONAL]';
 
 -- ============================================================================
--- Tabla: billing_data [CORE - Polymorphic Relationship]
--- Descripción: Billing/tax data for electronic invoicing
+-- Tabla: billing_data [CORE - Relación Polimórfica]
+-- Descripción: Datos de facturación/impuestos para facturación electrónica
 -- ============================================================================
 CREATE TABLE `billing_data` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship
-    `billable_type` VARCHAR(255) NOT NULL COMMENT 'Billable polymorphic model class',
-    `billable_id` BIGINT UNSIGNED NOT NULL COMMENT 'Billable polymorphic model ID',
+    -- Relación Polimórfica
+    `billable_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico facturable',
+    `billable_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico facturable',
     
-    `country` ENUM('MX', 'CO') NOT NULL COMMENT 'Country',
-    `tax_id` VARCHAR(50) NOT NULL COMMENT 'RFC (MX) or NIT (CO)',
-    `legal_name` VARCHAR(255) NOT NULL COMMENT 'Legal name',
-    `tax_regime` VARCHAR(100) NULL COMMENT 'Tax regime (MX only)',
-    `postal_code` VARCHAR(10) NULL COMMENT 'Postal code (MX only)',
-    `cfdi_use` VARCHAR(10) NULL COMMENT 'CFDI use (MX only)',
-    `person_type` ENUM('natural', 'legal') NULL COMMENT 'Person type (CO only)',
-    `address` TEXT NULL COMMENT 'Address (CO only)',
-    `city` VARCHAR(100) NULL COMMENT 'City (CO only)',
-    `state` VARCHAR(100) NULL COMMENT 'State/Department (CO only)',
+    `country` ENUM('MX', 'CO') NOT NULL COMMENT 'País',
+    `tax_id` VARCHAR(50) NOT NULL COMMENT 'RFC (MX) o NIT (CO)',
+    `legal_name` VARCHAR(255) NOT NULL COMMENT 'Nombre legal',
+    `tax_regime` VARCHAR(100) NULL COMMENT 'Régimen fiscal (solo MX)',
+    `postal_code` VARCHAR(10) NULL COMMENT 'Código postal (solo MX)',
+    `cfdi_use` VARCHAR(10) NULL COMMENT 'Uso de CFDI (solo MX)',
+    `person_type` ENUM('natural', 'legal') NULL COMMENT 'Tipo de persona (solo CO)',
+    `address` TEXT NULL COMMENT 'Dirección (solo CO)',
+    `city` VARCHAR(100) NULL COMMENT 'Ciudad (solo CO)',
+    `state` VARCHAR(100) NULL COMMENT 'Estado/Departamento (solo CO)',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     UNIQUE KEY `uk_billable` (`billable_type`, `billable_id`),
     INDEX `idx_country` (`country`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Billing/tax data for subscribers';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Datos de facturación/impuestos de suscriptores';
 
 -- ============================================================================
--- Tabla:  invoices [OPTIONAL MODULE - Polymorphic Relationship]
--- Descripción: Electronic invoice requests and records
--- NOTE: Only created if 'invoicing' feature is enabled in package config
+-- Tabla: invoices [MÓDULO OPCIONAL - Relación Polimórfica]
+-- Descripción: Solicitudes y registros de facturas electrónicas
+-- NOTA: Solo se crea si la característica 'invoicing' está habilitada en la configuración del paquete
 -- ============================================================================
 CREATE TABLE `invoices` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship
-    `invoiceable_type` VARCHAR(255) NOT NULL COMMENT 'Invoiceable polymorphic model class',
-    `invoiceable_id` BIGINT UNSIGNED NOT NULL COMMENT 'Invoiceable polymorphic model ID',
+    -- Relación Polimórfica
+    `invoiceable_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico facturable',
+    `invoiceable_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico facturable',
     
-    `payment_id` BIGINT UNSIGNED NOT NULL COMMENT 'Associated payment',
-    `file_url` VARCHAR(500) NULL COMMENT 'PDF file path',
-    `requested_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Request date',
-    `sent_at` TIMESTAMP NULL COMMENT 'Sent date',
-    `status` ENUM('requested', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'requested' COMMENT 'Invoice status',
+    `payment_id` BIGINT UNSIGNED NOT NULL COMMENT 'Pago asociado',
+    `file_url` VARCHAR(500) NULL COMMENT 'Ruta del archivo PDF',
+    `requested_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de solicitud',
+    `sent_at` TIMESTAMP NULL COMMENT 'Fecha de envío',
+    `status` ENUM('requested', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'requested' COMMENT 'Estado de la factura',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -274,7 +274,7 @@ CREATE TABLE `invoices` (
     INDEX `idx_invoiceable` (`invoiceable_type`, `invoiceable_id`),
     INDEX `idx_payment_id` (`payment_id`),
     INDEX `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Electronic invoices [OPTIONAL]';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Facturas electrónicas [OPCIONAL]';
 
 -- ============================================================================
 -- Tabla:  payment_retries
@@ -317,20 +317,20 @@ CREATE TABLE `grace_periods` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Períodos de gracia';
 
 -- ============================================================================
--- Tabla:  notifications [CORE - Polymorphic Relationship]
--- Descripción: Notification log (20+ types)
+-- Tabla: notifications [CORE - Relación Polimórfica]
+-- Descripción: Registro de notificaciones (20+ tipos)
 -- ============================================================================
 CREATE TABLE `notifications` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship
-    `notifiable_type` VARCHAR(255) NOT NULL COMMENT 'Notifiable polymorphic model class',
-    `notifiable_id` BIGINT UNSIGNED NOT NULL COMMENT 'Notifiable polymorphic model ID',
+    -- Relación Polimórfica
+    `notifiable_type` VARCHAR(255) NOT NULL COMMENT 'Clase del modelo polimórfico notificable',
+    `notifiable_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del modelo polimórfico notificable',
     
-    `type` VARCHAR(100) NOT NULL COMMENT 'Notification type (20+ types)',
-    `sent_at` TIMESTAMP NULL COMMENT 'Send date',
-    `status` ENUM('pending', 'sent', 'failed', 'bounced') NOT NULL DEFAULT 'pending' COMMENT 'Send status',
-    `metadata` JSON NULL COMMENT 'Additional data',
+    `type` VARCHAR(100) NOT NULL COMMENT 'Tipo de notificación (20+ tipos)',
+    `sent_at` TIMESTAMP NULL COMMENT 'Fecha de envío',
+    `status` ENUM('pending', 'sent', 'failed', 'bounced') NOT NULL DEFAULT 'pending' COMMENT 'Estado de envío',
+    `metadata` JSON NULL COMMENT 'Datos adicionales',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -338,72 +338,72 @@ CREATE TABLE `notifications` (
     INDEX `idx_type` (`type`),
     INDEX `idx_status` (`status`),
     INDEX `idx_sent_at` (`sent_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Notifications log';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Registro de notificaciones';
 
 -- ============================================================================
--- Tabla: audit_logs [CORE - Polymorphic Relationship]
--- Descripción: Audit log for critical actions
+-- Tabla: audit_logs [CORE - Relación Polimórfica]
+-- Descripción: Registro de auditoría para acciones críticas
 -- ============================================================================
 CREATE TABLE `audit_logs` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     
-    -- Polymorphic Relationship (nullable for system actions)
-    `auditable_type` VARCHAR(255) NULL COMMENT 'Auditable polymorphic model class (NULL for system)',
-    `auditable_id` BIGINT UNSIGNED NULL COMMENT 'Auditable polymorphic model ID (NULL for system)',
+    -- Relación Polimórfica (nullable para acciones del sistema)
+    `auditable_type` VARCHAR(255) NULL COMMENT 'Clase del modelo polimórfico auditable (NULL para sistema)',
+    `auditable_id` BIGINT UNSIGNED NULL COMMENT 'ID del modelo polimórfico auditable (NULL para sistema)',
     
-    `action` VARCHAR(100) NOT NULL COMMENT 'Action performed',
-    `entity` VARCHAR(100) NOT NULL COMMENT 'Affected entity',
-    `entity_id` BIGINT UNSIGNED NOT NULL COMMENT 'Record ID',
-    `before` JSON NULL COMMENT 'State before',
-    `after` JSON NULL COMMENT 'State after',
-    `ip` VARCHAR(45) NULL COMMENT 'Origin IP',
+    `action` VARCHAR(100) NOT NULL COMMENT 'Acción realizada',
+    `entity` VARCHAR(100) NOT NULL COMMENT 'Entidad afectada',
+    `entity_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del registro',
+    `before` JSON NULL COMMENT 'Estado antes',
+    `after` JSON NULL COMMENT 'Estado después',
+    `ip` VARCHAR(45) NULL COMMENT 'IP de origen',
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX `idx_auditable` (`auditable_type`, `auditable_id`),
     INDEX `idx_entity` (`entity`, `entity_id`),
     INDEX `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Audit logs';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Registros de auditoría';
 
 -- ============================================================================
--- Additional composite indexes for optimization
+-- Índices compuestos adicionales para optimización
 -- ============================================================================
 
--- Daily renewal queries
+-- Consultas de renovación diaria
 CREATE INDEX idx_subscriptions_renewal_query 
 ON subscriptions(next_billing_date, status, mit_enabled);
 
--- Pending 3DS payments queries
+-- Consultas de pagos 3DS pendientes
 CREATE INDEX idx_payments_3ds_pending_query 
 ON payments(requires_3ds, three_ds_status, authentication_required_notified_at) 
 WHERE requires_3ds = TRUE AND three_ds_status = 'pending';
 
--- Current token period queries
+-- Consultas de período actual de tokens
 CREATE INDEX idx_tokens_current_period 
 ON tokens_usage(subscriber_type, subscriber_id, period_end DESC);
 
--- Active grace periods queries
+-- Consultas de períodos de gracia activos
 CREATE INDEX idx_grace_periods_active 
 ON grace_periods(ends_at, subscription_id) 
 WHERE ends_at >= CURDATE();
 
 -- ============================================================================
--- Sample data (OPTIONAL - development only)
+-- Datos de ejemplo (OPCIONAL - solo desarrollo)
 -- ============================================================================
 
--- Sample plans
+-- Planes de ejemplo
 INSERT INTO `plans` (`name`, `description`, `tokens_monthly`, `periodicity`, `price_mxn`, `price_cop`, `trial_days`, `active`) VALUES
-('Starter Plan', 'Basic plan with 5,000 tokens monthly', 5000, 'monthly', 299.00, 50000.00, 14, TRUE),
-('Professional Plan', 'Professional plan with 10,000 tokens monthly', 10000, 'monthly', 499.00, 80000.00, 14, TRUE),
-('Enterprise Plan', 'Enterprise plan with 20,000 tokens monthly', 20000, 'monthly', 899.00, 150000.00, 14, TRUE);
+('Starter Plan', 'Plan básico con 5,000 tokens mensuales', 5000, 'monthly', 299.00, 50000.00, 14, TRUE),
+('Professional Plan', 'Plan profesional con 10,000 tokens mensuales', 10000, 'monthly', 499.00, 80000.00, 14, TRUE),
+('Enterprise Plan', 'Plan empresarial con 20,000 tokens mensuales', 20000, 'monthly', 899.00, 150000.00, 14, TRUE);
 
 -- ============================================================================
--- Triggers for audit (OPTIONAL)
+-- Triggers para auditoría (OPCIONAL)
 -- ============================================================================
 
 DELIMITER $$
 
--- Trigger to audit subscription changes
+-- Trigger para auditar cambios en suscripciones
 CREATE TRIGGER trg_subscriptions_audit_update
 AFTER UPDATE ON subscriptions
 FOR EACH ROW
@@ -423,7 +423,7 @@ BEGIN
     END IF;
 END$$
 
--- Trigger to audit payment changes
+-- Trigger para auditar cambios en pagos
 CREATE TRIGGER trg_payments_audit_update
 AFTER UPDATE ON payments
 FOR EACH ROW
@@ -453,33 +453,33 @@ DELIMITER ;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
--- END OF SCRIPT
+-- FIN DEL SCRIPT
 -- ============================================================================
 
--- NOTES:
--- 1. Execute this script on a clean database
--- 2. For production, adjust sample data as needed
--- 3. Audit triggers are optional but recommended
--- 4. Composite indexes improve performance of frequent queries
--- 5. 3DS fields (requires_3ds, three_ds_*, mit_enabled) are critical for payment flow
--- 6. Soft delete enabled only on subscriptions
--- 7. All relationships use POLYMORPHIC pattern for maximum flexibility
--- 8. The package does NOT create a users table - host application provides subscribable models
--- 9. Tables marked [OPTIONAL] are only created when corresponding feature is enabled
--- 10. Tables marked [CORE] are always created
+-- NOTAS:
+-- 1. Ejecutar este script en una base de datos limpia
+-- 2. Para producción, ajustar los datos de ejemplo según sea necesario
+-- 3. Los triggers de auditoría son opcionales pero recomendados
+-- 4. Los índices compuestos mejoran el rendimiento de consultas frecuentes
+-- 5. Los campos 3DS (requires_3ds, three_ds_*, mit_enabled) son críticos para el flujo de pagos
+-- 6. El borrado suave solo está habilitado en suscripciones
+-- 7. Todas las relaciones usan patrón POLIMÓRFICO para máxima flexibilidad
+-- 8. El paquete NO crea una tabla de usuarios - la aplicación host proporciona modelos suscribibles
+-- 9. Las tablas marcadas [OPCIONAL] solo se crean cuando la característica correspondiente está habilitada
+-- 10. Las tablas marcadas [CORE] siempre se crean
 
--- VERSION: 2.0
--- CHANGES:
--- - ✅ Removed users table - package uses polymorphic relationships
--- - ✅ All foreign keys to users converted to polymorphic (subscriber_type/subscriber_id)
--- - ✅ Renamed user_coupons to subscriber_coupons
--- - ✅ Added billable_type/billable_id to billing_data
--- - ✅ Added referrer_type/referrer_id and referred_type/referred_id to referrals
--- - ✅ Added notifiable_type/notifiable_id to notifications
--- - ✅ Added invoiceable_type/invoiceable_id to invoices
--- - ✅ Added auditable_type/auditable_id to audit_logs
--- - ✅ Marked optional modules: tokens_usage, referrals, invoices
--- - ✅ Marked core modules: subscriptions, payments, coupons, subscriber_coupons
--- - ✅ Updated all indexes for polymorphic relationships
--- - ✅ Updated all triggers to use polymorphic fields
--- - ✅ Generalized sample data and comments
+-- VERSIÓN: 2.0
+-- CAMBIOS:
+-- - ✅ Removida tabla users - el paquete usa relaciones polimórficas
+-- - ✅ Todas las llaves foráneas a users convertidas a polimórficas (subscriber_type/subscriber_id)
+-- - ✅ Renombrado user_coupons a subscriber_coupons
+-- - ✅ Agregado billable_type/billable_id a billing_data
+-- - ✅ Agregado referrer_type/referrer_id y referred_type/referred_id a referrals
+-- - ✅ Agregado notifiable_type/notifiable_id a notifications
+-- - ✅ Agregado invoiceable_type/invoiceable_id a invoices
+-- - ✅ Agregado auditable_type/auditable_id a audit_logs
+-- - ✅ Marcados módulos opcionales: tokens_usage, referrals, invoices
+-- - ✅ Marcados módulos core: subscriptions, payments, coupons, subscriber_coupons
+-- - ✅ Actualizados todos los índices para relaciones polimórficas
+-- - ✅ Actualizados todos los triggers para usar campos polimórficos
+-- - ✅ Generalizados datos de ejemplo y comentarios
