@@ -1,16 +1,16 @@
-# Polymorphic Relationships Guide
-## Laravel Subscription Manager Package
+# Guía de Relaciones Polimórficas
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Overview
+## Visión General
 
 This package uses **polymorphic relationships** to provide maximum flexibility. Instead of being tied to a specific `users` table, it can work with **any model** in your application.
 
-**Benefits:**
+**Beneficios:**
 - Subscribe Users, Companies, Teams, Organizations, or any custom model
 - No hard-coded dependencies on user table structure
 - Multi-tenant ready
@@ -56,7 +56,7 @@ subscriptions (
 )
 ```
 
-The package uses:
+el paquete usa:
 ```sql
 -- Polymorphic approach (USED)
 subscriptions (
@@ -65,7 +65,7 @@ subscriptions (
 )
 ```
 
-This allows the same `subscriptions` table to reference different models.
+Esto permite the same `subscriptions` table to reference different models.
 
 ---
 
@@ -192,7 +192,7 @@ $model->isOnGracePeriod(); // boolean
 // Check if subscription is blocked
 $model->isSubscriptionBlocked(); // boolean
 
-// Check subscription status
+// Verificar estado de suscripción
 $status = $model->subscriptionStatus(); // 'trial', 'active', 'past_due', etc.
 ```
 
@@ -291,17 +291,17 @@ You can have multiple different models that can subscribe:
 
 // But you can use the trait on multiple models:
 
-// User subscriptions
+// Suscripciones de usuario
 class User extends Authenticatable {
     use HasSubscription;
 }
 
-// Company subscriptions
+// Suscripciones de empresa
 class Company extends Model {
     use HasSubscription;
 }
 
-// Team subscriptions
+// Suscripciones de equipo
 class Team extends Model {
     use HasSubscription;
 }
@@ -494,7 +494,7 @@ if ($vendor->hasActiveSubscription()) {
 
 ---
 
-## Best Practices
+## Mejores Prácticas
 
 1. **Use Type Hints:**
 ```php
@@ -530,7 +530,7 @@ Event::listen(SubscriptionCreated::class, function ($event) {
 
 ---
 
-## Troubleshooting
+## Resolución de Problemas
 
 **Issue: Trait methods not found**
 ```php
@@ -559,7 +559,7 @@ Example: User::whereHas('subscriptions', fn($q) => $q->where('status', 'active')
 
 ---
 
-**Version:** 2.0  
+**Versión:** 2.0  
 **Last Updated:** January 2026
 
 ---
