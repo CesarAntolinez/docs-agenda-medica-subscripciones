@@ -1,5 +1,9 @@
-# 📋 Product Requirements Document (PRD)
-## Sistema de Planes y Suscripciones - Plataforma SaaS de Gestión Médica
+# Documento de Requerimientos Funcionales (PRD)
+## Sistema de Planes y Suscripciones - Agenda Médica SaaS
+
+**Versión:** 1.1  
+**Fecha:** Enero 2026  
+**Actualización:** Integración 3D Secure (3DS)
 
 ---
 
@@ -11,754 +15,764 @@
 4. [Requerimientos Funcionales](#requerimientos-funcionales)
 5. [Requerimientos No Funcionales](#requerimientos-no-funcionales)
 6. [User Stories](#user-stories)
-7. [Criterios de Aceptación](#criterios-de-aceptación)
-8. [Métricas de Éxito](#métricas-de-éxito)
+7. [Criterios de Aceptación](#criterios-de-aceptacion)
+8. [Métricas de Éxito](#metricas-de-exito)
 9. [Glosario](#glosario)
 
 ---
 
 ## Resumen Ejecutivo
 
-El Sistema de Planes y Suscripciones es un módulo crítico para la plataforma SaaS de gestión médica que opera en México y Colombia. Este sistema permitirá la gestión completa del ciclo de vida de suscripciones recurrentes basadas en consumo de tokens para funcionalidades de inteligencia artificial.
+El proyecto consiste en implementar un sistema completo de membresías y suscripciones recurrentes para una plataforma SaaS orientada a profesionales de la salud y consultorios médicos pequeños y medianos. El sistema permitirá gestionar planes de pago mensual, anual y anual con cobros mensuales, utilizando **Openpay con 3D Secure (3DS)** como pasarela de pagos, operando en dos países (México y Colombia) con instancias independientes.
 
-**Objetivo Principal:** Implementar un sistema robusto de suscripciones que soporte pagos recurrentes, consumo de tokens, facturación electrónica cumpliendo con regulaciones locales, y gestión completa del ciclo de vida del cliente.
+**Objetivo principal:** Monetizar la plataforma mediante suscripciones recurrentes con un modelo de negocio basado en consumo de tokens para funcionalidades de IA. 
 
-**Alcance:** MVP funcional en 3-4 meses con capacidad para escalar a 10,000+ usuarios en 6 meses.
+**Alcance:** MVP en 3-4 meses con funcionalidades críticas, seguido de 2 fases adicionales. 
 
-**Impacto Esperado:** Monetización efectiva de la plataforma con ingresos recurrentes predecibles, alta retención de usuarios y experiencia de pago fluida.
+**⚠️ Consideración Crítica:** La integración debe implementar **3D Secure 2.0** obligatoriamente según requerimientos de Openpay y normativas bancarias de México y Colombia.
 
 ---
 
 ## Contexto y Objetivos
 
-### Contexto del Proyecto
+### Contexto del Negocio
 
-**Plataforma Actual:**
-- SaaS para profesionales de salud y consultorios médicos
-- Funcionalidades: Gestión de citas, calendarios, pagos, administración
-- Operación en dos mercados: México y Colombia
-- Base de usuarios estimada: 10,000+ en 6 meses
+La plataforma actual es un SaaS de gestión médica que permite a profesionales de la salud y consultorios gestionar:  
+- Citas médicas
+- Calendarios
+- Pagos
+- Administración operativa
 
-**Arquitectura Técnica:**
-- **Backend:** Laravel 8 (migración planificada a Laravel 10)
-- **Frontend:** Bootstrap 4.6
-- **Base de Datos:** MySQL (instancias separadas por país)
-- **Pasarela de Pagos:** Openpay con cuentas separadas MXN/COP
-- **Hosting:** Latinoamericana Hosting (compartido, migración a VPS recomendada)
-- **Panel Admin:** Laravel 10 (proyecto separado)
-- **Jobs:** CronJobs
-- **Emails:** SMTP propio
-- **Storage:** FTP en el mismo servidor
-
-**Roles de Usuario:**
-- **Profesional:** Médico individual que gestiona su consultorio
-- **Consultorio:** Entidad que agrupa múltiples profesionales
-- **Asistente:** Usuario con permisos customizables y limitados
-- **Paciente:** Usuario final que agenda citas
+**Necesidad identificada:** Monetizar servicios avanzados de IA mediante un modelo de suscripción con consumo de tokens.
 
 ### Objetivos del Proyecto
 
-1. **Monetización Efectiva**
-   - Implementar modelo de suscripción recurrente
-   - Generar ingresos predecibles y escalables
-   - Maximizar valor de vida del cliente (LTV)
+**Objetivos de Negocio:**
+- Generar ingresos recurrentes predecibles (MRR/ARR)
+- Escalar a 10,000+ usuarios en los primeros 6 meses
+- Operar en México y Colombia simultáneamente
+- Reducir churn mediante período de gracia y beneficios de referidos
+- Cumplir con regulaciones fiscales y de seguridad (PSD2, 3DS) de ambos países
+- Mantener tasa de aprobación de pagos >85% con 3DS
 
-2. **Experiencia de Usuario Superior**
-   - Proceso de registro y pago fluido
-   - Transparencia en consumo de tokens
-   - Notificaciones oportunas y relevantes
+**Objetivos Técnicos:**
+- Integración limpia y desacoplada con sistema existente
+- Escalabilidad para 10,000+ usuarios
+- Alta disponibilidad (99.9% uptime)
+- Seguridad PCI-compliant (delegada a Openpay)
+- **Implementación correcta de 3D Secure 2.0**
+- Arquitectura multi-país (2 instancias independientes)
 
-3. **Cumplimiento Normativo**
-   - Facturación electrónica CFDI (México) y DIAN (Colombia)
-   - Protección de datos personales según leyes locales
-   - Transparencia en cobros y términos
-
-4. **Flexibilidad y Escalabilidad**
-   - Soporte para múltiples planes y periodicidades
-   - Sistema de descuentos y referidos
-   - Arquitectura preparada para 10,000+ usuarios
-
-5. **Gestión Administrativa Eficiente**
-   - Panel admin completo con métricas clave
-   - Automatización de procesos críticos
-   - Visibilidad total del negocio
+**Objetivos de Usuario:**
+- Experiencia fluida de registro y pago **incluso con autenticación 3DS**
+- Transparencia en consumo de tokens
+- Flexibilidad en planes y métodos de pago
+- Notificaciones oportunas y claras
+- Proceso de autenticación bancaria simple y seguro
 
 ---
 
 ## Stakeholders
 
-| Rol | Responsabilidad | Interés |
-|-----|----------------|---------|
-| **Product Owner** | Definición de características y priorización | Maximizar valor del producto |
-| **Equipo de Desarrollo** | Implementación técnica del sistema | Claridad en requerimientos, arquitectura escalable |
-| **Equipo de Finanzas** | Gestión de ingresos y facturación | Reportes precisos, cumplimiento fiscal |
-| **Soporte al Cliente** | Atención a usuarios finales | Sistema intuitivo, documentación clara |
-| **Usuarios Finales** | Profesionales médicos y consultorios | Proceso simple, transparencia, valor por dinero |
-| **Equipo Legal** | Cumplimiento normativo | Adherencia a regulaciones MX/CO |
-| **Management** | Visión estratégica del negocio | ROI, métricas de crecimiento, escalabilidad |
+| Rol | Responsabilidad | Interés Principal |
+|-----|----------------|-------------------|
+| **CEO/Founder** | Decisiones estratégicas | ROI, crecimiento de ingresos, reducción fraude |
+| **Product Manager** | Definición de features | Experiencia de usuario, cumplimiento roadmap, conversión |
+| **Tech Lead** | Arquitectura y desarrollo | Escalabilidad, mantenibilidad, seguridad 3DS |
+| **Backend Developers** | Implementación Laravel | Código limpio, APIs robustas, webhooks 3DS |
+| **Frontend Developers** | UI/UX Bootstrap | Interfaces responsivas, flujo 3DS optimizado |
+| **DevOps** | Infraestructura y deploy | Disponibilidad, performance, monitoreo pagos |
+| **Finanzas** | Facturación y contabilidad | Facturación correcta, reportes financieros, conciliación |
+| **Soporte** | Atención a usuarios | Herramientas admin eficientes, ayuda con 3DS |
+| **Compliance/Legal** | Regulaciones | Cumplimiento normativas, protección datos, 3DS |
+| **Usuarios Finales** | Consumidores del servicio | Valor por su dinero, facilidad de uso, seguridad |
 
 ---
 
 ## Requerimientos Funcionales
 
-### RF-001: Gestión de Planes de Suscripción
+### RF-001: Gestión de Usuarios y Roles
 
-**Descripción:** El sistema debe permitir la creación y gestión de planes de suscripción con diferentes características y precios.
+**Descripción:** El sistema debe permitir registro, autenticación y gestión de usuarios con 4 roles diferentes.  
 
-**Detalles:**
-- **Planes Disponibles:**
-  - "Google Tech + IA 50"
-  - "Google Tech + IA 100"
-  - "Google Tech + IA 200"
-  
-- **Periodicidades:**
-  - Mensual
-  - Anual
-  - Anual con cobros mensuales (contrato de 12 meses)
+**Roles:**
+- **Profesional:** Médico individual con su práctica
+- **Consultorio:** Entidad con múltiples profesionales
+- **Asistente:** Usuario con permisos limitados y customizables, asociado a Profesional/Consultorio
+- **Paciente:** Usuario final que agenda citas
 
-- **Características por Plan:**
-  - Tokens mensuales asignados (cantidad a definir por negocio)
-  - Período de prueba (trial) personalizable por plan
-  - Precio fijo por país (MXN para México, COP para Colombia)
-  - No hay conversión automática de moneda
+**Funcionalidades:**
+- Registro con email y contraseña
+- Login/Logout
+- Recuperación de contraseña
+- Perfil de usuario editable
+- Asignación de rol en registro
+- Captura de datos fiscales (obligatorio para facturación)
 
-- **Atributos Configurables:**
-  - Nombre del plan
-  - Descripción
-  - Tokens mensuales incluidos
-  - Duración del trial (en días)
-  - Precio en MXN
-  - Precio en COP
-  - Estado activo/inactivo
+**Datos fiscales a capturar:**
 
-**Prioridad:** ALTA
+**México:**
+- RFC
+- Razón social
+- Régimen fiscal
+- Código postal
+- Uso de CFDI
 
----
-
-### RF-002: Sistema de Tokens Mensual
-
-**Descripción:** Implementar un sistema de tokens para controlar el consumo de funcionalidades de IA.
-
-**Detalles:**
-- **Asignación:** Tokens asignados mensualmente según el plan contratado
-- **No Acumulables:** Tokens no utilizados se pierden al final del período
-- **Renovación Automática:** Se resetean al inicio de cada período de facturación
-- **Consumo:** Cada uso de funcionalidad IA consume tokens del pool mensual
-- **Alertas de Consumo:**
-  - 50% consumido
-  - 75% consumido
-  - 90% consumido
-  - 100% consumido (sin tokens disponibles)
-
-- **Visualización:**
-  - Dashboard con indicador visual de tokens restantes
-  - Historial de consumo mensual
-  - Proyección de consumo
-
-**Prioridad:** ALTA
+**Colombia:**
+- NIT
+- Razón social
+- Tipo de persona (natural/jurídica)
+- Dirección completa
+- Ciudad/Municipio
+- Departamento
 
 ---
 
-### RF-003: Período de Prueba (Trial)
+### RF-002: Gestión de Planes
 
-**Descripción:** Ofrecer período de prueba gratuito para nuevos usuarios.
+**Descripción:** El sistema debe ofrecer 3 planes con diferentes cantidades de tokens mensuales. 
 
-**Detalles:**
-- **Duración:** Configurable por plan (ejemplo: 7, 14, 30 días)
-- **Requisito Obligatorio:** Usuario debe agregar método de pago (tarjeta) para activar trial
-- **Funcionalidad Completa:** Acceso a todas las características del plan durante el trial
-- **Tokens Incluidos:** Pool completo de tokens del plan durante trial
-- **Conversión Automática:** Al finalizar trial, se cobra automáticamente si el usuario no cancela
-- **Notificaciones:**
-  - 3 días antes de vencer el trial
-  - El día que vence el trial
-  - Confirmación al convertirse en suscripción de pago
+**Planes:**
+1. **Google Tech + IA 50** (cantidades por definir)
+2. **Google Tech + IA 100** (cantidades por definir)
+3. **Google Tech + IA 200** (cantidades por definir)
 
-**Prioridad:** ALTA
+**Periodicidades:**
+- **Mensual:** Cobro cada mes
+- **Anual:** Cobro único anual (precio con descuento vs mensual)
+- **Anual con cobros mensuales:** Compromiso de 12 meses, cobro mensual (precio mensual reducido vs plan mensual sin compromiso)
 
----
+**Características de planes:**
+- Cantidad de tokens mensuales
+- Precio en MXN (México)
+- Precio en COP (Colombia)
+- Días de trial (personalizable por plan)
+- Descripción y features incluidos
+- Estado:  activo/inactivo
 
-### RF-004: Pagos Recurrentes con Tarjeta
-
-**Descripción:** Procesar pagos automáticos recurrentes mediante tarjeta de crédito/débito.
-
-**Detalles:**
-- **Pasarela:** Openpay (cuentas separadas MX/CO)
-- **Tokenización:** Almacenar token de tarjeta, NO datos completos
-- **Cobro Automático:** En la fecha de renovación según periodicidad
-- **Métodos Aceptados:**
-  - Tarjetas de crédito
-  - Tarjetas de débito
-
-- **Proceso de Renovación:**
-  1. Sistema intenta cobro en fecha programada
-  2. Si exitoso: Renueva suscripción, resetea tokens, envía confirmación
-  3. Si falla: Inicia proceso de reintentos (ver RF-005)
-
-- **Actualización de Tarjeta:** Usuario puede cambiar tarjeta en cualquier momento
-
-**Prioridad:** ALTA
+**Reglas:**
+- Precios son fijos por moneda (no conversión automática)
+- Usuario detectado automáticamente por país/IP
+- Tokens no son acumulables entre períodos
+- Trial requiere tarjeta de crédito/débito obligatoriamente
+- **Primer pago requiere 3D Secure obligatoriamente**
 
 ---
 
-### RF-005: Gestión de Fallos de Pago y Reintentos
+### RF-003: Período de Trial
 
-**Descripción:** Manejar fallos de pago con reintentos automáticos y período de gracia.
+**Descripción:** Cada plan ofrece un período de prueba gratuito personalizable.
 
-**Detalles:**
-- **Reintentos Automáticos:**
-  - Intento 1: Inmediato al fallo
-  - Intento 2: 3 días después del primer fallo
-  - Intento 3: 7 días después del segundo fallo
+**Funcionalidades:**
+- Días de trial configurables por plan
+- Tokens durante trial = tokens del plan completo
+- **Requiere tarjeta guardada con validación 3DS** (cargo de $0-1 para validar)
+- Notificación 3 días antes de vencer
+- Al vencer, cobra automáticamente si hay tarjeta válida
+- Si cobra exitosamente → suscripción activa
+- Si falla cobro → aplica lógica de reintentos
 
-- **Período de Gracia:**
-  - **Duración:** 2 meses desde el último intento fallido
-  - **Acceso:** Usuario mantiene acceso COMPLETO a la plataforma
-  - **Deuda:** Se acumula el monto de suscripciones no pagadas
-  - **Notificaciones:** Recordatorios cada 15 días (configurable)
-
-- **Fin del Período de Gracia:**
-  - **Si paga:** Reactivación inmediata, continúa suscripción normal
-  - **Si NO paga:** Bloqueo de cuenta con deuda acumulada
-
-- **Bloqueo:**
-  - Acceso limitado a funcionalidades (solo consulta)
-  - Mensaje visible de deuda pendiente
-  - Opción de pago para reactivación
-
-**Prioridad:** ALTA
+**⚠️ Consideración 3DS:**
+Durante el registro, el usuario deberá: 
+1. Ingresar datos de tarjeta
+2. **Completar autenticación 3DS con su banco** (modal/redirect)
+3. Una vez autenticado, la tarjeta queda validada y guardada
+4. Trial se activa inmediatamente
 
 ---
 
-### RF-006: Pagos Manuales (Transferencia Bancaria)
+### RF-004: Gestión de Tokens
 
-**Descripción:** Permitir pago manual mediante transferencia bancaria como alternativa a tarjeta.
+**Descripción:** Tokens son la unidad de consumo para funcionalidades de IA.  
 
-**Detalles:**
-- **Aplicabilidad:** Opcional, disponible para todos los planes
-- **Proceso:**
-  1. Usuario sin tarjeta genera orden de pago
-  2. Sistema envía email con instrucciones y datos bancarios
-  3. Usuario realiza transferencia
-  4. Admin confirma pago manualmente o vía webhook bancario
-  5. Sistema activa/renueva suscripción
+**Funcionalidades:**
+- Tracking de consumo en tiempo real
+- Visualización de tokens usados/restantes en panel usuario
+- Renovación automática el primer día del período de facturaci��n
+- **No acumulables:** Tokens no usados se pierden al renovar
+- Alertas automáticas por email al alcanzar:  
+  - 50% consumidos
+  - 75% consumidos
+  - 90% consumidos
+  - 100% consumidos (sin tokens)
 
-- **Conversión a Tarjeta:** Usuario con pago manual puede agregar tarjeta posteriormente para automatizar renovaciones
-
-- **Limitaciones:**
-  - NO disponible para período de trial
-  - Requiere confirmación manual (más lento)
-  - Sin renovación automática hasta agregar tarjeta
-
-**Prioridad:** MEDIA
+**Comportamiento al agotar tokens:**
+- Usuario NO puede usar funcionalidades que consumen tokens
+- Puede esperar hasta renovación
+- Puede hacer upgrade inmediato para obtener más tokens
 
 ---
 
-### RF-007: Cambio de Plan (Upgrade)
+### RF-005: Pagos y Métodos de Pago 🔒 **[ACTUALIZADO - 3DS]**
 
-**Descripción:** Permitir a usuarios mejorar su plan de suscripción actual.
+**Descripción:** Integración con Openpay para procesar pagos recurrentes **con 3D Secure obligatorio**.
 
-**Detalles:**
-- **Aplicación:** Inmediata
-- **Cálculo de Prorrata:**
-  - Se calcula el monto no utilizado del plan actual
-  - Se aplica como crédito al nuevo plan
-  - Se cobra la diferencia inmediatamente
+**Pasarela de Pagos:**
+- **Openpay México:** Cuenta separada para MXN
+- **Openpay Colombia:** Cuenta separada para COP
+- **3D Secure 2.0:** Implementación obligatoria
 
-- **Ejemplo:**
-  ```
-  Plan Actual: $50/mes, quedan 15 días
-  Plan Nuevo: $100/mes
-  Crédito por días restantes: $25
-  Cargo inmediato: $75 (diferencia prorrateada)
-  Próximo cobro completo: $100 en 15 días
-  ```
+**Métodos de pago aceptados:**
 
-- **Tokens:**
-  - Se resetean INMEDIATAMENTE al pool del nuevo plan
-  - Tokens no utilizados del plan anterior se pierden
+**1. Tarjeta de crédito/débito (Recurrente - Requerido para trial y suscripciones automáticas):**
+- **Tokenización de tarjeta con 3DS** (guardada en Openpay, no en BD local)
+- **Primer pago SIEMPRE requiere autenticación 3DS**
+- Cobro automático en fecha de renovación
+- 3 reintentos automáticos si falla
+- **Soporte 3DS 2.0** (modal/iframe, biometría)
 
-- **Próxima Renovación:**
-  - Nueva fecha de facturación desde el día del upgrade
-  - Monto completo del nuevo plan
+**Flujo 3DS en primer pago:**
+1. Usuario ingresa datos de tarjeta
+2. Sistema solicita cargo a Openpay con `use_3d_secure=true`
+3. Openpay devuelve URL de autenticación del banco
+4. Frontend muestra modal/iframe con página del banco
+5. Usuario se autentica (SMS, app bancaria, biometría)
+6. Banco confirma identidad
+7. Openpay procesa pago
+8. Webhook confirma éxito
+9. Tarjeta queda guardada para pagos futuros
 
-**Prioridad:** ALTA
+**2. Transferencia bancaria (Manual - Opcional):**
+- SPEI (México)
+- PSE o transferencia directa (Colombia)
+- Sistema genera orden de pago con referencia única
+- Email con instrucciones, monto, referencia y fecha límite
+- Usuario paga manualmente
+- Confirmación vía webhook bancario o validación manual
+- **No requiere 3DS** (no es pago con tarjeta)
 
----
+**No se aceptan:**
+- OXXO, efectivo en tiendas
 
-### RF-008: Cambio de Plan (Downgrade)
+**Conversión:**
+- Usuario que paga manualmente puede agregar tarjeta después para automatizar renovaciones futuras
 
-**Descripción:** Permitir a usuarios reducir su plan de suscripción actual.
-
-**Detalles:**
-- **Aplicación:** Al finalizar el período actual de facturación
-- **Proceso:**
-  1. Usuario solicita downgrade
-  2. Sistema programa el cambio para la próxima renovación
-  3. Usuario continúa con plan actual hasta fin de período
-  4. En la renovación, se activa el nuevo plan y se cobra el monto menor
-
-- **Tokens:**
-  - Durante período actual: Mantiene tokens del plan actual
-  - En renovación: Se asignan tokens del nuevo plan (menor cantidad)
-
-- **Confirmación:**
-  - Email confirmando el cambio programado
-  - Email al ejecutarse el cambio en la renovación
-
-- **Reversión:** Usuario puede cancelar el downgrade programado antes de que se ejecute
-
-**Prioridad:** ALTA
+**Estados de pago con 3DS:**
+- `pending`: Pago creado
+- `processing`: Enviado a Openpay
+- `requires_3ds`: Requiere autenticación del usuario
+- `authenticating`: Usuario en proceso de autenticación
+- `authenticated`: Autenticación exitosa
+- `completed`: Pago completado
+- `failed`: Pago fallido (fondos, 3DS fallido, etc.)
 
 ---
 
-### RF-009: Sistema de Cupones de Descuento
+### RF-006: Renovaciones Automáticas 🔒 **[ACTUALIZADO - MIT/3DS]**
 
-**Descripción:** Implementar sistema de cupones para descuentos en suscripciones.
+**Descripción:** Cobro automático recurrente según periodicidad del plan, **con soporte MIT (Merchant Initiated Transaction)**.
 
-**Detalles:**
-- **Tipos de Descuento:**
-  - **Porcentaje:** ej. 20% de descuento
-  - **Precio Fijo:** ej. $10 de descuento
+**Flujo:**
+1. **Fecha de renovación alcanzada**
+2. **Intento de cobro automático con MIT** (sin 3DS, si el banco lo permite)
+   - Marcado como `merchant_initiated=true`
+   - Marcado como `mit_type=recurring`
+3. **Respuesta de Openpay:**
+   
+   **a) Exitoso (MIT aceptado):**
+   - Renovar suscripción
+   - Resetear tokens al valor del plan
+   - Enviar confirmación por email
+   - Marcar para generación de factura
+   
+   **b) Fallo:  Requiere 3DS:**
+   - Banco rechaza MIT y solicita autenticación del usuario
+   - Marcar pago como `requires_3ds`
+   - **Enviar notificación urgente al usuario:** "Tu pago requiere autenticación"
+   - Usuario tiene 24h para ingresar y autenticar
+   - Si autentica:  pago se completa
+   - Si NO autentica: pasa a lógica de reintentos
+   
+   **c) Fallo: Otros (fondos insuficientes, tarjeta expirada):**
+   - Iniciar proceso de reintentos (RF-007)
 
-- **Duración:**
-  - **Permanente:** Aplica indefinidamente mientras el cupón esté activo
-  - **Temporal:** Duración en meses (ej. 3 meses, 6 meses)
+**Recordatorios:**
+- Email configurable X días antes del cobro (parámetro global)
 
-- **Aplicabilidad:**
+**⚠️ MIT (Merchant Initiated Transaction):**
+- **Exención de 3DS** para pagos recurrentes
+- Solo aplica si el primer pago tuvo 3DS exitoso
+- El banco **puede** rechazarlo y pedir 3DS de todos modos
+- Aumenta tasa de éxito de renovaciones automáticas
+
+---
+
+### RF-007: Manejo de Fallos de Pago 🔒 **[ACTUALIZADO - Distinguir 3DS]**
+
+**Descripción:** Sistema de reintentos y período de gracia para retener usuarios, **distinguiendo fallos por 3DS vs otros tipos**. 
+
+**Flujo de fallos:**
+
+**1. Clasificación del fallo:**
+
+El sistema debe identificar el tipo de fallo: 
+- **Fallo tipo A:  Requiere 3DS** (código Openpay:  `3001`, `3002`)
+- **Fallo tipo B: Fondos insuficientes** (código:  `1001`)
+- **Fallo tipo C: Tarjeta expirada/inválida** (código: `1005`, `1006`)
+- **Fallo tipo D: Otros errores técnicos**
+
+**2. Manejo según tipo:**
+
+**Fallo Tipo A (Requiere 3DS):**
+```
+1. Marcar pago como `requires_3ds`
+2. Enviar email #20: "Acción requerida: Autentica tu pago"
+3. Usuario tiene 24h para ingresar y autenticar
+4. Si autentica → Pago exitoso → Renovación
+5. Si NO autentica en 24h → Contar como primer intento fallido → Continuar con Tipo B/C
+```
+
+**Fallo Tipo B/C (Fondos, Tarjeta):**
+```
+Primer fallo: 
+- Reintento automático en 3 días
+- Email de alerta al usuario
+
+Segundo fallo:
+- Segundo reintento en 5 días
+- Email urgente con instrucciones
+
+Tercer fallo:
+- Tercer reintento en 7 días
+- Email muy urgente
+
+Después de 3 fallos:
+- Entra en Período de Gracia (2 meses)
+- Usuario mantiene acceso completo a tokens durante estos 2 meses
+- Notificaciones cada 15 días (configurable) recordando pago pendiente
+- Usuario puede: 
+  * Actualizar tarjeta y pagar manualmente
+  * Hacer pago manual con transferencia
+  * Si el fallo fue por 3DS:  Autenticar el pago pendiente
+
+Después de 2 meses sin pago:
+- Bloqueo de acceso
+- Deuda acumulada registrada
+- Usuario puede reactivar pagando lo adeudado
+```
+
+**Para Plan Anual con Cobros Mensuales:**
+- Mismo flujo de reintentos y gracia
+- Deuda se acumula mes a mes
+- Compromiso de 12 meses persiste (no se puede cancelar anticipadamente sin penalización)
+
+---
+
+### RF-008: Cambio de Plan (Upgrade)
+
+**Descripción:** Usuario puede subir de plan en cualquier momento. 
+
+**Flujo:**
+1. Usuario solicita upgrade
+2. Sistema calcula **prorrata:**
+   - Días restantes del período actual
+   - Diferencia de precio entre planes
+   - Cargo = (Precio nuevo plan - Precio plan actual) × (Días restantes / Días totales del período)
+3. **Cobra inmediatamente la diferencia prorrateada**
+   - **⚠️ Puede requerir 3DS** si el banco lo solicita
+   - Usuario debe completar autenticación si es requerida
+4. **Resetea tokens** a 0 usados / Tokens del nuevo plan disponibles
+5. Actualiza suscripción al nuevo plan
+6. Próxima renovación será por el monto completo del nuevo plan
+
+**Ejemplo:**
+- Plan actual:  Básico ($100 MXN/mes, 1,000 tokens)
+- Día 15 del mes, usó 500 tokens
+- Upgrade a Pro ($300 MXN/mes, 5,000 tokens)
+- Cargo inmediato: ~$100 MXN (15 días restantes)
+- **Si requiere 3DS:** Usuario autentica en modal
+- Tokens:  0 usados / 5,000 disponibles
+- Próximo cobro (día 15 del mes siguiente): $300 MXN completos
+
+---
+
+### RF-009: Cambio de Plan (Downgrade)
+
+**Descripción:** Usuario puede bajar de plan.  
+
+**Flujo:**
+1. Usuario solicita downgrade
+2. **No se aplica inmediatamente**
+3. Se **programa para fin del período actual**
+4. Usuario sigue con plan actual hasta fecha de renovación
+5. En renovación: 
+   - Cambia al nuevo plan
+   - Cobra monto del nuevo plan (menor)
+   - Tokens del nuevo plan (menor cantidad)
+
+**Ejemplo:**
+- Plan actual: Pro ($300 MXN/mes, 5,000 tokens)
+- Día 20, usó 3,000 tokens
+- Solicita downgrade a Básico ($100 MXN/mes, 1,000 tokens)
+- Sigue con Pro hasta fin de mes (puede usar sus 2,000 tokens restantes)
+- Día 1 del siguiente mes: cambia a Básico, cobra $100, tiene 1,000 tokens
+
+---
+
+### RF-010: Cancelación de Suscripción
+
+**Descripción:** Usuario puede cancelar su suscripción.  
+
+**Tipos de cancelación:**
+
+**1. Plan Mensual o Anual (sin compromiso):**
+- Usuario solicita cancelación
+- **No cancela inmediatamente**
+- Acceso se mantiene hasta fin del período pagado
+- No se renueva automáticamente
+- Email de confirmación y encuesta de salida (opcional)
+
+**2. Plan Anual con Cobros Mensuales (con compromiso de 12 meses):**
+- Usuario solicita cancelación
+- **Se cancela solo la renovación** (después de 12 meses)
+- **Compromiso de 12 meses persiste**
+- Debe seguir pagando los meses restantes hasta completar 12
+- Si no paga → aplica RF-007 (deuda acumulada)
+
+**Reactivación:**
+- Usuario puede reactivar antes de que expire el período
+- Si ya expiró → debe crear nueva suscripción (se pierde precio/descuento anterior)
+
+---
+
+### RF-011: Descuentos y Cupones
+
+**Descripción:** Sistema de cupones para aplicar descuentos.
+
+**Tipos de descuento:**
+- **Porcentaje:** Ej:  20% off
+- **Precio fijo:** Ej: $50 MXN de descuento
+
+**Configuración de cupón:**
+- Código único (ej:  PROMO2026)
+- Tipo (porcentaje o fijo)
+- Valor
+- Duración:  
+  - Permanente (mientras mantenga suscripción)
+  - Temporal (ej: solo primeros 3 meses)
+  - Configurable por cupón
+- Aplicabilidad:
   - Todos los planes
-  - Planes específicos seleccionables
+  - Planes específicos (ej: solo Plan Pro)
+- Límite de usos totales (ej: solo 100 personas)
+- Fecha de expiración
+- Estado: activo/inactivo
 
-- **Restricciones:**
-  - NO acumulables (solo un cupón activo por usuario)
-  - Límite de usos totales (opcional)
-  - Fecha de expiración (opcional)
-  - Un usuario solo puede usar un cupón una vez (no puede reusar)
+**Reglas:**
+- **No acumulables:** Solo un cupón activo por usuario
+- Un usuario puede usar un cupón **una sola vez** (no puede cancelar y reusar)
+- Cupones de un solo uso:  códigos únicos generados para usuarios específicos
 
-- **Códigos:**
-  - Códigos únicos alfanuméricos
-  - Case-insensitive
-  - Validación en tiempo real
-
-- **Gestión Admin:**
-  - Crear/editar/desactivar cupones
-  - Ver estadísticas de uso
-  - Exportar lista de usuarios que usaron cupón
-
-**Prioridad:** MEDIA
+**Validación:**
+- Cupón existe
+- Está activo
+- No ha expirado
+- Aplica al plan seleccionado
+- No ha alcanzado límite de usos
+- Usuario no lo ha usado previamente
 
 ---
 
-### RF-010: Sistema de Referidos
+### RF-012: Sistema de Referidos
 
-**Descripción:** Programa de referidos para incentivar crecimiento orgánico.
+**Descripción:** Programa de incentivos para que usuarios inviten a otros.
 
-**Detalles:**
-- **Beneficios del Referidor (configurable):**
-  - Descuento en próxima renovación
-  - Tokens extra (adicionales al pool mensual)
-  - Crédito en la plataforma
+**Mecánica:**
+- Cada usuario tiene:  
+  - **Código de referido único** (ej: CESAR2026)
+  - **Link de referido único** (ej: app.com/register? ref=abc123)
+- Usuario comparte código/link con amigos
+- Amigo se registra usando el código/link
+- **Beneficios se otorgan al primer pago del referido** (después de trial)
 
-- **Beneficios del Referido:**
-  - Solo descuento en primer pago
+**Beneficios del Referidor (quien invita):**
+- Descuento (ej: 20% off por 1 mes)
+- Tokens extra (ej: 1,000 tokens bonus)
+- Crédito en plataforma (ej: $100 MXN para pagar futuras facturas)
+- **Configurable** por administrador
 
-- **Mecánica:**
-  1. Usuario obtiene código único y link de referido
-  2. Comparte con amigos/colegas
-  3. Nuevo usuario se registra usando el código/link
-  4. Nuevo usuario completa trial y realiza primer pago
-  5. Sistema otorga beneficios a ambas partes
+**Beneficios del Referido (quien fue invitado):**
+- Descuento (ej: 10% off primer mes)
 
-- **Reglas:**
-  - Beneficio se otorga al PRIMER PAGO del referido (no en trial)
-  - Referidor puede referir a múltiples usuarios
-  - Límite configurable de beneficios por referidor (ej. máximo 10 referidos/mes)
-  - Referido solo puede ser referido una vez (no puede usar múltiples códigos)
+**Reglas:**
+- **Beneficio único:** Por cada referido, se otorga una vez
+- **Repetible:** Puede referir múltiples amigos, gana por cada uno
+- **Límite configurable:** Ej: máximo 10 referidos por usuario (opcional)
 
-- **Tracking:**
-  - Dashboard con estadísticas de referidos
-  - Estado de cada referido (registrado, en trial, convertido)
-  - Beneficios ganados
-
-**Prioridad:** MEDIA
+**Tracking:**
+- Dashboard de referidos para el usuario (cuántos ha referido, beneficios ganados)
+- Admin puede ver árbol de referidos
 
 ---
 
-### RF-011: Facturación Electrónica
+### RF-013: Facturación Electrónica
 
-**Descripción:** Generar y entregar facturas electrónicas cumpliendo normativas locales.
+**Descripción:** Generación y envío de facturas electrónicas según normativa de cada país.
 
-**Detalles:**
+**Proceso:**
+1. Usuario completa pago
+2. **Solicitud de factura:**
+   - Usuario puede solicitar factura desde su panel
+   - Límite de tiempo: 
+     - **México:** Mismo mes del pago
+     - **Colombia:** Hasta 5 días después del pago
+3. Sistema valida:
+   - Datos fiscales completos
+   - Dentro del límite de tiempo
+4. **Generación externa:**
+   - Factura se genera en software externo (PAC para México, sistema DIAN para Colombia)
+   - Administrador genera PDF
+5. **Carga a plataforma:**
+   - Admin sube factura PDF al sistema
+   - Asocia con pago correspondiente
+6. **Envío:**
+   - Sistema envía email a usuario con factura adjunta
+   - Factura disponible para descarga en panel usuario
 
-#### México (CFDI):
-- **Datos Requeridos:**
-  - RFC (Registro Federal de Contribuyentes)
-  - Razón Social
-  - Régimen Fiscal
-  - Código Postal
-  - Uso de CFDI
+**Datos fiscales validados:**
+- México: RFC válido, régimen fiscal, uso de CFDI seleccionado
+- Colombia: NIT válido, tipo de persona, dirección completa
 
-- **Límite de Solicitud:** Mismo mes del pago
-- **Generación:** Externa mediante PAC (Proveedor Autorizado de Certificación)
-
-#### Colombia (Factura Electrónica DIAN):
-- **Datos Requeridos:**
-  - NIT (Número de Identificación Tributaria)
-  - Razón Social
-  - Tipo de Persona (Natural/Jurídica)
-  - Dirección
-  - Ciudad
-  - Departamento
-
-- **Límite de Solicitud:** 5 días después del pago
-- **Generación:** Externa cumpliendo normativa DIAN
-
-#### Proceso:
-1. Usuario solicita factura desde la plataforma
-2. Sistema valida datos fiscales completos
-3. Sistema valida límite de tiempo según país
-4. Genera solicitud visible para Admin
-5. Admin genera factura en sistema externo (PAC/DIAN)
-6. Admin sube PDF de factura a la plataforma
-7. Sistema envía email al usuario con factura adjunta
-8. Factura queda disponible en historial del usuario
-
-**Prioridad:** ALTA
+**Histórico:**
+- Usuario puede ver todas sus facturas en su panel
+- Admin puede buscar facturas por usuario, fecha, monto
 
 ---
 
-### RF-012: Sistema de Notificaciones
+### RF-014: Notificaciones por Email 🔒 **[ACTUALIZADO - +1 email 3DS]**
 
-**Descripción:** Enviar notificaciones por email en eventos clave del ciclo de vida.
+**Descripción:** Sistema completo de notificaciones transaccionales.
 
-**17 Emails Mínimos para MVP:**
+**18 Notificaciones MVP:**
 
-1. **Bienvenida:** Al completar registro
-2. **Confirmación de Pago:** Cuando un pago es exitoso
-3. **Recordatorio de Cobro:** X días antes de la renovación (configurable)
-4. **Fallo de Pago:** Cuando un intento de cobro falla
-5. **Orden de Pago Manual:** Instrucciones para transferencia bancaria
-6. **Entrada a Período de Gracia:** Al entrar en período de gracia
-7-N. **Recordatorios de Gracia:** Cada 15 días durante período de gracia (configurable)
-8. **Cancelación de Suscripción:** Cuando usuario cancela
-9. **Cambio de Plan:** Confirmación de upgrade o downgrade
-10. **Referido Exitoso:** Al referidor cuando un referido convierte
-11. **Código de Descuento:** Al referido con su código de descuento
-12. **Factura Disponible:** Cuando la factura está lista para descarga
-13. **Tokens 50%:** Alerta al consumir 50% de tokens
-14. **Tokens 75%:** Alerta al consumir 75% de tokens
-15. **Tokens 90%:** Alerta al consumir 90% de tokens
-16. **Tokens 100%:** Alerta al agotar tokens
-17. **Trial Próximo a Vencer:** 3 días antes de que termine el trial
-18. **Trial Vencido:** El día que termina el trial
-19. **Reactivación:** Al reactivar cuenta después de bloqueo
+| # | Tipo | Trigger | Configurable | **3DS** |
+|---|------|---------|--------------|---------|
+| 1 | Bienvenida | Registro completado | No | - |
+| 2 | Confirmación de pago | Pago exitoso | No | ✅ |
+| 3 | Recordatorio de cobro | X días antes de renovación | Sí (días) | - |
+| 4 | Fallo de pago | Intento de cobro fallido | No | - |
+| 5 | Orden de pago manual | Transferencia generada | No | - |
+| 6 | Entrada en período de gracia | Después de 3 fallos | No | - |
+| 7-N | Recordatorios en gracia | Cada 15 días durante gracia | Sí (frecuencia) | - |
+| 8 | Cancelación de suscripción | Usuario cancela | No | - |
+| 9 | Cambio de plan | Upgrade/Downgrade | No | ✅ |
+| 10 | Referido exitoso | Referido hace primer pago | No | - |
+| 11 | Código de descuento (referido) | Referido se registra | No | - |
+| 12 | Factura disponible | Admin sube factura | No | - |
+| 13 | Tokens 50% | Consume 50% de tokens | No | - |
+| 14 | Tokens 75% | Consume 75% de tokens | No | - |
+| 15 | Tokens 90% | Consume 90% de tokens | No | - |
+| 16 | Tokens 100% | Agota tokens | No | - |
+| 17 | Trial próximo a vencer | 3 días antes | No | - |
+| 18 | Trial vencido | Trial finaliza | No | ✅ |
+| 19 | Reactivación | Paga deuda y reactiva | No | - |
+| **20** | **🆕 Autenticación de pago requerida** | **Pago requiere 3DS** | **No** | **✅** |
 
-**Características:**
-- Templates responsive con branding
-- Personalización con datos del usuario
-- Links a acciones relevantes
-- Footer con información legal y unsubscribe
+**Email #20:  Autenticación de Pago Requerida (NUEVO)**
 
-**Prioridad:** ALTA
+```
+Asunto: 🔒 Acción requerida: Autentica tu pago de [Plan]
+
+Hola [Nombre],
+
+Tu pago de [Monto] [Moneda] para la renovación de tu plan [Plan] 
+requiere autenticación adicional por seguridad de tu banco.
+
+Por favor, haz clic en el botón de abajo para completar la 
+autenticación en tu banco (toma menos de 1 minuto):
+
+[Botón:  Autenticar mi pago ahora]
+
+⏰ Tiempo límite: 24 horas
+
+Si no completas la autenticación, tu suscripción entrará en 
+período de gracia y podrías perder acceso a tus tokens. 
+
+¿Por qué necesito autenticar? 
+Tu banco requiere verificar tu identidad para mayor seguridad 
+de tus pagos.  Es un proceso simple y seguro. 
+
+¿Necesitas ayuda?  Contacta a soporte. 
+
+Saludos,
+Equipo [Plataforma]
+```
+
+**Diseño:**
+- Templates responsivos (HTML + texto plano)
+- Branding consistente
+- CTAs claros
+- Unsubscribe donde aplique (marketing, no transaccionales)
+- Tracking de envío (logs)
 
 ---
 
-### RF-013: Panel de Administración
+### RF-015: Panel de Administración
 
-**Descripción:** Dashboard completo para gestión del sistema de suscripciones.
+**Descripción:** Dashboard completo para gestión del sistema (Laravel 10 independiente).
 
-**Módulos Principales:**
+**Módulos principales:**
 
-#### Dashboard Principal:
-- **Métricas Clave:**
+**1. Dashboard:**
+- Métricas en tiempo real:  
+  - Usuarios totales, activos, en trial, cancelados
+  - Suscripciones activas por plan
   - MRR (Monthly Recurring Revenue)
   - ARR (Annual Recurring Revenue)
-  - Usuarios activos vs inactivos
-  - Suscripciones por plan
+  - Churn rate
   - Tasa de conversión trial → pago
-  - Churn rate (tasa de cancelación)
-  - Ingresos del mes/año
-  - Cupones activos y su uso
-  - Referidos exitosos
+  - **🆕 Tasa de aprobación con 3DS**
+  - **🆕 Tasa de abandono en autenticación 3DS**
+  - **🆕 % de pagos que requirieron 3DS**
+- Gráficas de tendencias
 
-- **Gráficos:**
-  - Evolución de ingresos (línea temporal)
-  - Distribución por planes (pie chart)
-  - Nuevos usuarios vs cancelaciones
-  - Conversión de trials
-
-#### Gestión de Usuarios:
-- Listar todos los usuarios con filtros
-- Ver detalle de suscripción de cada usuario
+**2. Gestión de Usuarios:**
+- Listar usuarios con filtros (rol, país, plan, estado)
+- Ver detalle de usuario
+- Historial completo (pagos, cambios plan, tokens)
 - Cancelar/reactivar suscripción manualmente
 - Cambiar plan de usuario
-- Agregar/quitar tokens manualmente
-- Ver historial de pagos
-- Aplicar descuento manual
+- Ajustar tokens manualmente (ej: compensación)
 - Ver datos fiscales
+- **🆕 Ver historial de autenticaciones 3DS**
 
-#### Gestión de Planes:
+**3. Gestión de Planes:**
 - CRUD completo de planes
 - Activar/desactivar planes
-- Modificar precios (afecta solo nuevas suscripciones)
-- Configurar duración de trial por plan
+- Configurar precios por país y periodicidad
+- Configurar tokens mensuales
+- Configurar días de trial
 
-#### Gestión de Cupones:
+**4. Gestión de Cupones:**
 - CRUD completo de cupones
-- Ver estadísticas de uso por cupón
-- Exportar usuarios que usaron cupón
-- Desactivar cupones
+- Ver estadísticas de uso
+- Activar/desactivar cupones
+- Generar códigos únicos en lote
 
-#### Gestión de Pagos:
-- Listar todos los pagos con filtros
-- Ver detalle de cada transacción
+**5. Gestión de Descuentos Manuales:**
+- Aplicar descuento específico a un usuario
+- Porcentaje o monto fijo
+- Duración específica
+
+**6. Gestión de Pagos:**
+- Historial completo de transacciones
+- Filtros avanzados
 - Procesar reembolsos
-- Confirmar pagos manuales (transferencias)
-- Ver logs de webhooks de Openpay
+- Ver intentos de pago y reintentos
+- Gestión de órdenes de pago manual
+- **🆕 Ver estado 3DS de cada pago**
+- **🆕 Logs de webhooks 3DS**
+- **🆕 Filtro por pagos que requirieron 3DS**
 
-#### Gestión de Período de Gracia:
-- Listar usuarios en período de gracia
+**7. Gestión de Período de Gracia:**
+- Listar usuarios en gracia
 - Ver deuda acumulada
-- Extender/reducir período de gracia
-- Forzar pago o bloqueo manual
+- Ver notificaciones enviadas
+- Acciones manuales (perdonar deuda, extender gracia)
+- **🆕 Distinguir si gracia fue por fallo 3DS o fondos**
 
-#### Gestión de Referidos:
-- Ver todos los referidos y su estado
-- Estadísticas por referidor
-- Configurar beneficios de programa de referidos
-- Exportar datos
+**8. Gestión de Referidos:**
+- Ver árbol de referidos
+- Estadísticas de programa
+- Beneficios otorgados
 
-#### Gestión de Facturas:
-- Listar solicitudes de facturas
-- Subir PDF de factura
-- Enviar factura por email
-- Ver historial de facturas
+**9. Gestión de Facturas:**
+- Ver solicitudes pendientes
+- Subir facturas PDF
+- Enviar facturas por email
+- Histórico completo
 
-#### Reportes:
-- Exportar reportes de ingresos
-- Exportar reportes de usuarios
-- Exportar reportes de facturación
-- Análisis de churn
-- Proyecciones de ingresos
+**10. Logs y Eventos:**
+- Ver logs de webhooks de Openpay
+- **🆕 Logs específicos de eventos 3DS**
+- Logs de errores
+- Auditoría de acciones de admin
 
-#### Configuración Global:
-- Configurar días de recordatorio de cobro
-- Configurar frecuencia de recordatorios en período de gracia
-- Configurar beneficios de programa de referidos
-- Configurar alertas de tokens
-- Configurar emails transaccionales
+**11. Reportes:**
+- MRR por mes
+- ARR
+- Churn rate
+- Conversión trial
+- Distribución de planes
+- **🆕 Impacto de 3DS en conversión**
+- **🆕 Tasa de éxito/fallo por banco emisor**
+- Exportación a CSV/Excel
 
-**Prioridad:** ALTA (Dashboard básico), MEDIA (Features avanzados)
+**12. Configuración Global:**
+- Parámetros del sistema (días recordatorio, frecuencia gracia, etc.)
+- Configuración de emails (SMTP)
+- Configuración Openpay (keys sandbox/producción)
+- **🆕 Configuración 3DS (timeout, reintentos)**
 
----
-
-### RF-014: Cancelación de Suscripción
-
-**Descripción:** Permitir a usuarios cancelar su suscripción.
-
-**Detalles:**
-- **Proceso:**
-  1. Usuario solicita cancelación
-  2. Sistema muestra confirmación con información:
-     - Fecha efectiva de cancelación (fin de período actual)
-     - Acceso restante
-     - Datos que se mantendrán
-  3. Usuario confirma
-  4. Sistema programa cancelación al finalizar período pagado
-
-- **Efecto:**
-  - Acceso completo hasta fin de período pagado
-  - No se cobra en próxima renovación
-  - Cuenta se marca como "cancelada"
-  - Email de confirmación de cancelación
-
-- **Reactivación:**
-  - Usuario puede reactivar antes de que se efectúe la cancelación
-  - Opción de reactivar después con nuevo período de trial
-
-- **Retención de Datos:**
-  - Datos del usuario se mantienen por período legal
-  - Opción de exportar datos antes de cancelar
-
-**Prioridad:** ALTA
-
----
-
-### RF-015: Auditoría y Logs
-
-**Descripción:** Registrar todas las acciones críticas del sistema para auditoría.
-
-**Eventos a Loguear:**
-- Cambios en suscripciones
-- Todos los intentos de pago (exitosos y fallidos)
-- Cambios de plan
-- Aplicación de cupones y descuentos
-- Otorgamiento de beneficios de referidos
-- Cambios en datos fiscales
-- Solicitudes y entregas de facturas
-- Acciones de admin sobre usuarios
-- Cambios en configuración del sistema
-- Webhooks recibidos de Openpay
-
-**Datos a Registrar:**
-- Usuario afectado
-- Acción realizada
-- Entidad y ID
-- Estado anterior (JSON)
-- Estado nuevo (JSON)
-- IP de origen
-- Timestamp
-- Usuario admin (si aplica)
-
-**Retención:** Mínimo 1 año, 5 años recomendado para cumplimiento fiscal
-
-**Prioridad:** ALTA
+**Seguridad:**
+- Autenticación robusta
+- Roles de admin (Superadmin, Admin, Soporte, Finanzas)
+- Logs de auditoría de todas las acciones
 
 ---
 
 ## Requerimientos No Funcionales
 
-### RNF-001: Rendimiento
-
-**Descripción:** El sistema debe operar con tiempos de respuesta adecuados.
-
-**Criterios:**
+### RNF-001: Performance
+- Tiempo de respuesta de APIs: < 500ms (p95)
 - Tiempo de carga de páginas: < 2 segundos
-- Procesamiento de pago: < 5 segundos
-- APIs: < 500ms para el 95% de las peticiones
-- Webhook processing: < 1 segundo
-
-**Prioridad:** ALTA
-
----
+- Procesamiento de webhooks: < 100ms
+- **🆕 Carga de modal 3DS:  < 1 segundo**
 
 ### RNF-002: Escalabilidad
-
-**Descripción:** El sistema debe escalar para soportar 10,000+ usuarios activos.
-
-**Criterios:**
-- Arquitectura preparada para escalado horizontal
-- Base de datos optimizada con índices adecuados
-- Uso de caché para queries frecuentes (Redis recomendado)
-- Jobs asíncronos para operaciones pesadas
-- CDN para assets estáticos
-
-**Prioridad:** ALTA
-
----
+- Soportar 10,000+ usuarios concurrentes
+- Crecimiento horizontal (instancias separadas por país)
+- Queue workers escalables
+- **🆕 Manejo de picos de autenticaciones 3DS**
 
 ### RNF-003: Disponibilidad
+- Uptime: 99.9% (máximo 43 minutos de downtime al mes)
+- Backup diario de base de datos
+- Recuperación ante desastres:  RTO < 4 horas
+- **🆕 Monitoreo de disponibilidad de servicio 3DS de Openpay**
 
-**Descripción:** El sistema debe estar disponible para procesar pagos y accesos.
-
-**Criterios:**
-- Uptime objetivo: 99.5% (downtime máximo ~3.6 horas/mes)
-- Monitoreo 24/7 de servicios críticos
-- Alertas automáticas en caso de fallo
-- Backups diarios de base de datos
-- Plan de recuperación ante desastres
-
-**Prioridad:** ALTA
-
----
-
-### RNF-004: Seguridad
-
-**Descripción:** Proteger datos sensibles y transacciones.
-
-**Criterios:**
-- **Cumplimiento Normativo:**
+### RNF-004: Seguridad 🔒 **[ACTUALIZADO - 3DS]**
+- HTTPS obligatorio
+- **No almacenar datos de tarjetas** (delegado a Openpay - PCI compliant)
+- **Implementación de 3D Secure 2.0** (autenticación adicional obligatoria)
+- Encriptación de datos sensibles en BD
+- Protección contra inyección SQL, XSS, CSRF
+- Rate limiting en APIs (100 req/min por IP)
+- Logs de auditoría completos
+- **Validación de firma de webhooks de Openpay**
+- Cumplimiento:  
   - Ley Federal de Protección de Datos Personales en Posesión de Particulares (México)
-  - Ley 1581 de 2012 - Ley de Habeas Data (Colombia)
-
-- **Seguridad de Datos:**
-  - HTTPS obligatorio en todas las comunicaciones
-  - Tokenización de tarjetas (NO almacenar datos completos)
-  - Encriptación de datos sensibles en BD
-  - CSRF protection
-  - Input sanitization y validación
-  - Rate limiting en APIs
-
-- **Seguridad de Webhooks:**
-  - Validación de IP origen
-  - Verificación de firma HMAC
-  - Logs de todos los webhooks
-
-- **Autenticación:**
-  - Contraseñas hasheadas (bcrypt)
-  - 2FA en roadmap futuro
-  - Sesiones seguras
-  - Rate limiting en login
-
-- **Auditoría:**
-  - Logs de todas las transacciones
-  - Logs de acciones de admin
-  - Retención de logs según normativa
-
-**Prioridad:** ALTA
-
----
+  - Ley Estatutaria 1581 de 2012 - Habeas Data (Colombia)
+  - **PSD2 compliance (3DS)**
 
 ### RNF-005: Usabilidad
-
-**Descripción:** La interfaz debe ser intuitiva y accesible.
-
-**Criterios:**
-- Diseño responsive (mobile, tablet, desktop)
-- Formularios con validación en tiempo real
-- Mensajes de error claros y accionables
-- Proceso de pago en máximo 3 pasos
-- Accesibilidad WCAG 2.1 nivel AA (objetivo)
-- Soporte para navegadores modernos (últimas 2 versiones)
-
-**Prioridad:** MEDIA
-
----
+- Interfaz responsive (mobile, tablet, desktop)
+- Navegación intuitiva
+- Mensajes de error claros
+- Confirmaciones de acciones críticas
+- **🆕 Flujo 3DS optimizado para UX (modal, no redirect completo)**
+- **🆕 Mensajes tranquilizadores durante autenticación bancaria**
 
 ### RNF-006: Mantenibilidad
-
-**Descripción:** El código debe ser mantenible y extensible.
-
-**Criterios:**
-- Código siguiendo estándares PSR (PHP)
-- Arquitectura en capas (Service Layer, Repository Pattern)
-- Documentación técnica completa
-- Tests unitarios y de integración
-- Code reviews obligatorios
-- Versionamiento semántico
-
-**Prioridad:** MEDIA
-
----
+- Código documentado (PHPDoc)
+- Arquitectura modular y desacoplada
+- Tests automatizados (cobertura >70%)
+- Logs estructurados
+- **🆕 Tests específicos para flujos 3DS**
 
 ### RNF-007: Compatibilidad
-
-**Descripción:** El sistema debe funcionar en ambos países con sus especificidades.
-
-**Criterios:**
-- Soporte para 2 monedas (MXN, COP)
-- Soporte para 2 sistemas de facturación (CFDI, DIAN)
-- Instancias separadas por país
-- Sin conversión automática de moneda
-- Configuración específica por país
-
-**Prioridad:** ALTA
-
----
+- Navegadores:  Chrome, Firefox, Safari, Edge (últimas 2 versiones)
+- Dispositivos:  Responsive desde 320px
+- Laravel 10+, PHP 8.1+, MySQL 8.0+
+- **🆕 Soporte para 3DS 1.0 y 2.0**
+- **🆕 Compatible con apps bancarias móviles (deep linking)**
 
 ### RNF-008: Observabilidad
-
-**Descripción:** Capacidad de monitorear y diagnosticar el sistema.
-
-**Criterios:**
-- Logging estructurado
-- Métricas de negocio en dashboard
-- Alertas configurables
-- Laravel Telescope para desarrollo
-- Laravel Horizon para queues en producción (recomendado)
-- Integración con Sentry para errores (recomendado)
-
-**Prioridad:** MEDIA
+- Monitoreo de errores (Sentry o similar)
+- Logs centralizados
+- Métricas de negocio en tiempo real
+- **🆕 Dashboards de métricas 3DS (tasa aprobación, abandono, tiempo)**
+- **🆕 Alertas automáticas si tasa de fallo 3DS > 20%**
 
 ---
 
@@ -766,305 +780,236 @@ El Sistema de Planes y Suscripciones es un módulo crítico para la plataforma S
 
 ### Epic 1: Onboarding y Trial
 
-#### US-001: Registro de Usuario
-**Como** nuevo usuario  
-**Quiero** registrarme en la plataforma seleccionando un plan  
-**Para** comenzar a usar el servicio
+**US-001: Como usuario nuevo, quiero registrarme seleccionando un plan para empezar a usar la plataforma** 🔒 **[ACTUALIZADO]**
+- **Criterios de aceptación:**
+  - Puedo ver los 3 planes con sus características
+  - Puedo seleccionar periodicidad (mensual, anual, anual con cobros mensuales)
+  - Completo formulario de registro (nombre, email, contraseña, rol)
+  - Completo datos fiscales
+  - Agrego tarjeta de crédito/débito
+  - **🆕 Completo autenticación 3DS con mi banco (modal/iframe)**
+  - **🆕 Veo mensajes tranquilizadores durante proceso 3DS**
+  - Trial se activa inmediatamente después de autenticación exitosa
+  - Recibo email de bienvenida
+- **Prioridad:** Alta
+- **Estimación:** 13 puntos (era 8, +5 por 3DS)
 
-**Criterios de Aceptación:**
-- Puedo ver los 3 planes disponibles con sus características
-- Puedo seleccionar periodicidad (mensual/anual)
-- Puedo ingresar mis datos de registro
-- Puedo ingresar mis datos fiscales
-- El sistema valida todos los campos
-- Recibo email de bienvenida
-
----
-
-#### US-002: Activación de Trial
-**Como** usuario recién registrado  
-**Quiero** agregar mi tarjeta para activar el período de prueba  
-**Para** probar el servicio sin cargo inmediato
-
-**Criterios de Aceptación:**
-- Puedo ingresar datos de mi tarjeta de forma segura
-- El sistema tokeniza mi tarjeta (no almacena datos completos)
-- Mi trial se activa inmediatamente
-- Recibo los tokens completos del plan
-- Recibo confirmación de activación de trial
-- Sé exactamente cuándo se cobrará mi tarjeta
+**US-002: Como usuario en trial, quiero ser notificado antes de que mi trial venza para decidir si continuar**
+- **Criterios de aceptación:**
+  - Recibo email 3 días antes de vencer
+  - Email indica fecha exacta de vencimiento y monto a cobrar
+  - Puedo cancelar antes del cobro si no deseo continuar
+- **Prioridad:** Alta
+- **Estimación:** 3 puntos
 
 ---
 
-#### US-003: Notificación de Vencimiento de Trial
-**Como** usuario en período de trial  
-**Quiero** recibir notificación antes de que venza mi trial  
-**Para** decidir si continuar o cancelar
+### Epic 2: Pagos y Suscripciones
 
-**Criterios de Aceptación:**
-- Recibo email 3 días antes de que venza el trial
-- El email indica la fecha exacta de cobro
-- El email indica el monto que se cobrará
-- Puedo cancelar desde el link del email
-- Puedo actualizar mi tarjeta si es necesario
+**US-003: Como usuario con suscripción activa, quiero que mi renovación sea automática para no interrumpir mi servicio** 🔒 **[ACTUALIZADO]**
+- **Criterios de aceptación:**
+  - Sistema cobra automáticamente en fecha de renovación
+  - **🆕 Si el banco acepta MIT, no requiere 3DS**
+  - **🆕 Si el banco requiere 3DS, recibo email para autenticar**
+  - Recibo email de confirmación de pago
+  - Mis tokens se resetean al valor de mi plan
+  - Factura se genera automáticamente
+- **Prioridad:** Crítica
+- **Estimación:** 21 puntos (era 13, +8 por flujo 3DS MIT)
 
----
+**US-004: Como usuario sin tarjeta, quiero pagar con transferencia bancaria**
+- **Criterios de aceptación:**
+  - Puedo seleccionar "transferencia" como método de pago
+  - Recibo email con referencia única, monto y fecha límite
+  - Al completar transferencia, mi suscripción se activa
+  - Recibo confirmación
+- **Prioridad:** Media
+- **Estimación:** 8 puntos
 
-### Epic 2: Pagos y Facturación
+**US-005: Como usuario cuyo pago falló, quiero tener tiempo para solucionar el problema sin perder acceso**
+- **Criterios de aceptación:**
+  - Sistema reintenta cobro 3 veces
+  - Recibo notificaciones de cada fallo
+  - Entro en período de gracia de 2 meses con acceso completo
+  - Recibo recordatorios cada 15 días
+  - Puedo actualizar tarjeta y pagar manualmente
+- **Prioridad:** Alta
+- **Estimación:** 13 puntos
 
-#### US-004: Renovación Automática
-**Como** usuario con suscripción activa  
-**Quiero** que mi suscripción se renueve automáticamente  
-**Para** no interrumpir mi servicio
-
-**Criterios de Aceptación:**
-- Mi tarjeta se cobra automáticamente en la fecha de renovación
-- Mis tokens se resetean al pool completo del plan
-- Recibo confirmación de pago exitoso
-- Puedo descargar mi recibo de pago
-- Mi próxima fecha de renovación se actualiza
-
----
-
-#### US-005: Pago Manual con Transferencia
-**Como** usuario sin tarjeta  
-**Quiero** pagar mediante transferencia bancaria  
-**Para** acceder al servicio sin usar tarjeta
-
-**Criterios de Aceptación:**
-- Puedo generar una orden de pago
-- Recibo email con instrucciones y datos bancarios
-- Puedo enviar comprobante de pago
-- Mi suscripción se activa al confirmar el pago
-- Puedo agregar tarjeta después para automatizar
-
----
-
-#### US-006: Solicitud de Factura
-**Como** usuario que realizó un pago  
-**Quiero** solicitar mi factura electrónica  
-**Para** cumplir con mis obligaciones fiscales
-
-**Criterios de Aceptación:**
-- Puedo ingresar/actualizar mis datos fiscales
-- El sistema valida que esté dentro del límite de tiempo
-- Puedo solicitar factura desde mi historial de pagos
-- Recibo email cuando la factura está disponible
-- Puedo descargar la factura en PDF
-- La factura cumple con normativa local (CFDI/DIAN)
+**🆕 US-006: Como usuario, cuando mi pago requiere autenticación adicional, quiero un proceso simple para completarlo**
+- **Criterios de aceptación:**
+  - **Recibo email con link claro:  "Autentica tu pago"**
+  - **Hago clic y veo página explicando el proceso**
+  - **Completo autenticación en modal/iframe (no salgo del sitio)**
+  - **Veo confirmación inmediata al completar**
+  - **Si fallo, puedo reintentar fácilmente**
+  - **Recibo email de confirmación después de autenticar**
+- **Prioridad:** Alta
+- **Estimación:** 8 puntos
 
 ---
 
-### Epic 3: Gestión de Suscripción
+### Epic 3: Gestión de Tokens
 
-#### US-007: Upgrade de Plan
-**Como** usuario con plan básico  
-**Quiero** mejorar a un plan superior  
-**Para** obtener más tokens y funcionalidades
+**US-007: Como usuario, quiero ver cuántos tokens me quedan en tiempo real**
+- **Criterios de aceptación:**
+  - Dashboard muestra tokens usados/totales
+  - Barra de progreso visual
+  - Actualización en tiempo real al consumir
+- **Prioridad:** Alta
+- **Estimación:** 5 puntos
 
-**Criterios de Aceptación:**
-- Puedo ver los planes superiores disponibles
-- Veo el cálculo de prorrata claramente
-- Veo el cargo que se aplicará de inmediato
-- Mi upgrade se aplica inmediatamente al confirmar
-- Mis tokens se resetean al nuevo plan
-- Recibo confirmación del cambio
-
----
-
-#### US-008: Downgrade de Plan
-**Como** usuario con plan premium  
-**Quiero** reducir a un plan menor  
-**Para** ajustar mis costos
-
-**Criterios de Aceptación:**
-- Puedo seleccionar un plan inferior
-- Entiendo que el cambio se aplicará al finalizar mi período actual
-- Mantengo mi plan actual hasta la próxima renovación
-- Recibo confirmación del cambio programado
-- Puedo cancelar el downgrade antes de que se ejecute
+**US-008: Como usuario, quiero ser alertado cuando esté por agotar mis tokens**
+- **Criterios de aceptación:**
+  - Recibo email al 50%, 75%, 90% y 100% de consumo
+  - Emails sugieren hacer upgrade si necesito más
+- **Prioridad:** Alta
+- **Estimación:** 5 puntos
 
 ---
 
-#### US-009: Cancelación de Suscripción
-**Como** usuario suscrito  
-**Quiero** cancelar mi suscripción  
-**Para** dejar de recibir cobros
+### Epic 4: Cambios de Plan
 
-**Criterios de Aceptación:**
-- Puedo solicitar cancelación fácilmente
-- Veo claramente hasta cuándo tendré acceso
-- Mantengo acceso hasta fin del período pagado
-- No se me cobra en la próxima renovación
-- Recibo confirmación de cancelación
-- Puedo exportar mis datos antes de cancelar
+**US-009: Como usuario, quiero hacer upgrade inmediato para obtener más tokens ahora** 🔒 **[ACTUALIZADO]**
+- **Criterios de aceptación:**
+  - Puedo seleccionar nuevo plan desde mi panel
+  - Veo cálculo de prorrata antes de confirmar
+  - **🆕 Si requiere 3DS, completo autenticación en modal**
+  - Al confirmar, se cobra inmediatamente
+  - Mis tokens se resetean al nuevo plan
+  - Recibo confirmación
+- **Prioridad:** Alta
+- **Estimación:** 13 puntos (era 8, +5 por 3DS)
 
----
-
-### Epic 4: Tokens y Consumo
-
-#### US-010: Visualización de Tokens
-**Como** usuario activo  
-**Quiero** ver mis tokens disponibles  
-**Para** planificar mi uso de funcionalidades IA
-
-**Criterios de Aceptación:**
-- Veo un indicador visual de tokens restantes
-- Veo el total de tokens de mi plan
-- Veo mi historial de consumo del mes
-- Veo cuándo se resetearán mis tokens
-- El indicador se actualiza en tiempo real
-
----
-
-#### US-011: Alertas de Consumo de Tokens
-**Como** usuario consumiendo tokens  
-**Quiero** recibir alertas cuando me estoy quedando sin tokens  
-**Para** planificar upgrade o reducir uso
-
-**Criterios de Aceptación:**
-- Recibo alerta al consumir 50% de tokens
-- Recibo alerta al consumir 75% de tokens
-- Recibo alerta al consumir 90% de tokens
-- Recibo alerta al agotar 100% de tokens
-- Cada alerta incluye opción de upgrade
-- Las alertas se envían por email y se muestran en plataforma
+**US-010: Como usuario, quiero hacer downgrade para ahorrar en mi próxima renovación**
+- **Criterios de aceptación:**
+  - Puedo seleccionar plan menor
+  - Sistema me informa que aplicará al fin del período actual
+  - Puedo seguir usando mi plan actual hasta entonces
+  - Recibo confirmación del cambio programado
+- **Prioridad:** Media
+- **Estimación:** 5 puntos
 
 ---
 
 ### Epic 5: Descuentos y Referidos
 
-#### US-012: Aplicar Cupón de Descuento
-**Como** nuevo usuario o usuario renovando  
-**Quiero** aplicar un cupón de descuento  
-**Para** obtener un precio reducido
+**US-011: Como usuario, quiero aplicar un cupón de descuento para pagar menos**
+- **Criterios de aceptación:**
+  - Puedo ingresar código de cupón al seleccionar plan
+  - Sistema valida y muestra precio con descuento
+  - Descuento se aplica según duración configurada
+  - Recibo confirmación
+- **Prioridad:** Media
+- **Estimación:** 8 puntos
 
-**Criterios de Aceptación:**
-- Puedo ingresar un código de cupón
-- El sistema valida el cupón en tiempo real
-- Veo el descuento aplicado claramente
-- Veo el precio final a pagar
-- El cupón se aplica automáticamente en cobros recurrentes según su duración
-- Recibo confirmación del cupón aplicado
-
----
-
-#### US-013: Referir a un Amigo
-**Como** usuario satisfecho  
-**Quiero** referir amigos a la plataforma  
-**Para** obtener beneficios
-
-**Criterios de Aceptación:**
-- Obtengo un código y link único de referido
-- Puedo compartir fácilmente por email/redes sociales
-- Veo cuántos amigos he referido
-- Veo el estado de cada referido (registrado, trial, convertido)
-- Recibo notificación cuando un referido convierte
-- Recibo mis beneficios al primer pago del referido
+**US-012: Como usuario, quiero invitar amigos y recibir beneficios**
+- **Criterios de aceptación:**
+  - Tengo un código y link único de referido
+  - Puedo compartir fácilmente
+  - Veo cuántos amigos he referido
+  - Cuando amigo paga, recibo mi beneficio (descuento/tokens/crédito)
+  - Recibo notificación
+- **Prioridad:** Media
+- **Estimación:** 13 puntos
 
 ---
 
-### Epic 6: Gestión de Fallos
+### Epic 6: Facturación
 
-#### US-014: Notificación de Fallo de Pago
-**Como** usuario con fallo en renovación  
-**Quiero** ser notificado del fallo  
-**Para** actualizar mi método de pago
-
-**Criterios de Aceptación:**
-- Recibo email inmediato al fallar el pago
-- El email explica claramente qué pasó
-- Puedo actualizar mi tarjeta desde el link del email
-- Veo cuándo será el próximo reintento
-- Mantengo acceso completo durante los reintentos
+**US-013: Como usuario, quiero solicitar mi factura electrónica**
+- **Criterios de aceptación:**
+  - Puedo solicitar factura desde mi panel
+  - Sistema valida que esté dentro del plazo
+  - Solicitud llega a admin
+  - Cuando esté lista, recibo email con PDF
+  - Puedo descargar desde mi panel
+- **Prioridad:** Alta
+- **Estimación:** 8 puntos
 
 ---
 
-#### US-015: Período de Gracia
-**Como** usuario que no pudo pagar después de reintentos  
-**Quiero** tener un período para regularizar  
-**Para** no perder acceso inmediatamente
+### Epic 7: Panel Admin
 
-**Criterios de Aceptación:**
-- Mantengo acceso completo durante 2 meses de gracia
-- Recibo recordatorios cada 15 días
-- Veo claramente mi deuda acumulada
-- Puedo pagar en cualquier momento para regularizar
-- Si pago, mi suscripción continúa normalmente
+**US-014: Como administrador, quiero ver métricas clave del negocio** 🔒 **[ACTUALIZADO]**
+- **Criterios de aceptación:**
+  - Dashboard muestra MRR, ARR, usuarios activos, churn
+  - **🆕 Veo tasa de aprobación de pagos con 3DS**
+  - **🆕 Veo tasa de abandono en autenticación**
+  - **🆕 Veo % de pagos que requirieron 3DS**
+  - Gráficas de tendencias
+  - Actualización en tiempo real
+- **Prioridad:** Alta
+- **Estimación:** 13 puntos
 
----
+**US-015: Como administrador, quiero gestionar suscripciones de usuarios manualmente**
+- **Criterios de aceptación:**
+  - Puedo buscar usuario
+  - Puedo cancelar/reactivar suscripción
+  - Puedo cambiar plan
+  - Puedo ajustar tokens
+  - Todas las acciones quedan registradas en logs
+- **Prioridad:** Alta
+- **Estimación:** 13 puntos
 
-### Epic 7: Administración
+**US-016: Como administrador, quiero crear cupones de descuento para campañas**
+- **Criterios de aceptación:**
+  - Puedo crear cupón con código único
+  - Configuro tipo, valor, duración, límites
+  - Puedo ver estadísticas de uso
+  - Puedo activar/desactivar
+- **Prioridad:** Media
+- **Estimación:** 8 puntos
 
-#### US-016: Dashboard de Admin
-**Como** administrador  
-**Quiero** ver métricas clave del negocio  
-**Para** tomar decisiones informadas
-
-**Criterios de Aceptación:**
-- Veo MRR y ARR actualizados
-- Veo distribución de usuarios por plan
-- Veo tasa de conversión de trial
-- Veo churn rate del mes
-- Veo gráficos de evolución temporal
-- Puedo exportar reportes
-
----
-
-#### US-017: Gestión de Usuario por Admin
-**Como** administrador  
-**Quiero** gestionar suscripciones de usuarios  
-**Para** resolver problemas y casos especiales
-
-**Criterios de Aceptación:**
-- Puedo buscar cualquier usuario
-- Puedo ver detalle completo de su suscripción
-- Puedo cancelar/reactivar suscripción
-- Puedo cambiar plan manualmente
-- Puedo agregar/quitar tokens
-- Puedo aplicar descuento manual
-- Todas las acciones quedan en audit log
+**🆕 US-017: Como administrador, quiero monitorear el rendimiento de 3DS para optimizar conversión**
+- **Criterios de aceptación:**
+  - **Veo dashboard con métricas 3DS**
+  - **Filtro por banco emisor para identificar problemas**
+  - **Veo logs de webhooks 3DS**
+  - **Recibo alertas si tasa de fallo > umbral**
+  - **Puedo exportar reportes**
+- **Prioridad:** Media
+- **Estimación:** 8 puntos
 
 ---
 
-## Criterios de Aceptación
+## Criterios de Aceptación Generales
 
-### Generales
+### Funcionales
+- Todas las user stories implementadas según especificación
+- Flujos completos testeados (end-to-end)
+- Notificaciones enviadas correctamente
+- Facturación funcional en ambos países
+- Integración Openpay operativa con webhooks
+- **🆕 3D Secure implementado correctamente (1.0 y 2.0)**
+- **🆕 MIT funcionando para pagos recurrentes**
+- **🆕 Manejo correcto de todos los estados 3DS**
 
-1. **Funcionalidad Completa:**
-   - Todos los requerimientos funcionales implementados según especificación
-   - Flujos principales funcionando end-to-end
-   - Casos edge cubiertos
+### Técnicos
+- Tests unitarios con >70% cobertura
+- Tests de integración para flujos críticos
+- **🆕 Tests específicos para todos los escenarios 3DS**
+- Performance según RNF (< 500ms p95)
+- Sin errores críticos en producción
+- Documentación técnica completa
+- **🆕 Logs estructurados de eventos 3DS**
 
-2. **Calidad de Código:**
-   - Tests unitarios con cobertura mínima 70%
-   - Tests de integración para flujos críticos
-   - Code reviews aprobados
-   - Sin vulnerabilidades críticas
+### UX
+- Interfaz responsive validada en dispositivos
+- Navegación intuitiva (test con usuarios)
+- Mensajes de error claros y accionables
+- Confirmaciones de acciones críticas
+- **🆕 Flujo 3DS intuitivo y tranquilizador**
+- **🆕 Timeouts manejados elegantemente**
+- **🆕 Mensajes de ayuda durante autenticación**
 
-3. **Experiencia de Usuario:**
-   - Interfaz intuitiva sin necesidad de documentación
-   - Mensajes de error claros y accionables
-   - Tiempos de respuesta < 2 segundos
-   - Funciona en mobile, tablet y desktop
-
-4. **Seguridad:**
-   - Datos sensibles encriptados
-   - Webhooks validados
-   - HTTPS en todos los endpoints
-   - Sin almacenamiento de datos de tarjeta
-
-5. **Cumplimiento:**
-   - Facturación conforme a normativas MX/CO
-   - Política de privacidad implementada
-   - Términos y condiciones claros
-   - Retención de datos según ley
-
-6. **Documentación:**
-   - Documentación técnica completa
-   - Documentación de APIs
-   - Guías de usuario
-   - Runbooks para operaciones
+### Seguridad
+- Penetration testing básico pasado
+- Encriptación HTTPS
+- No almacenamiento de datos de tarjetas
+- Validaciones de entrada completas
+- **🆕 Firma de webhooks validada**
+- **🆕 Compliance con normativas 3DS/PSD2**
 
 ---
 
@@ -1072,63 +1017,82 @@ El Sistema de Planes y Suscripciones es un módulo crítico para la plataforma S
 
 ### Métricas de Negocio
 
-| Métrica | Objetivo | Timeframe |
-|---------|----------|-----------|
-| **MRR (Monthly Recurring Revenue)** | Crecimiento 20% mensual | Primeros 6 meses |
-| **Tasa de Conversión Trial → Pago** | > 40% | Después del primer mes |
-| **Churn Rate** | < 5% mensual | Estabilizado a los 3 meses |
-| **LTV (Lifetime Value)** | > $500 USD por usuario | A los 6 meses |
-| **Tasa de Éxito de Pagos** | > 95% | Desde el lanzamiento |
-| **Uso de Cupones** | > 20% de nuevos usuarios | Primeros 3 meses |
-| **Tasa de Referidos Convertidos** | > 30% | Primeros 6 meses |
+| Métrica | Objetivo Año 1 | Medición |
+|---------|----------------|----------|
+| **MRR** | $50,000 USD | Ingresos recurrentes mensuales |
+| **ARR** | $600,000 USD | Ingresos recurrentes anuales |
+| **Usuarios activos** | 10,000+ | Usuarios con suscripción activa |
+| **Tasa de conversión trial** | >30% | % de trials que se convierten a pago |
+| **Churn rate** | <5% mensual | % de usuarios que cancelan por mes |
+| **LTV / CAC** | >3:1 | Lifetime Value vs Customer Acquisition Cost |
+| **Tiempo en período de gracia** | <15 días promedio | Tiempo que tardan en pagar usuarios en gracia |
+| **🆕 Tasa de aprobación con 3DS** | **>85%** | **% de pagos 3DS exitosos** |
+| **🆕 Tasa de abandono en 3DS** | **<10%** | **% usuarios que abandonan en autenticación** |
+
+### Métricas de Producto
+
+| Métrica | Objetivo | Medición |
+|---------|----------|----------|
+| **Tiempo de registro** | <4 minutos | Desde landing hasta trial activo (era 3 min, +1 por 3DS) |
+| **Uso de referidos** | >20% usuarios | % de usuarios que refieren al menos 1 amigo |
+| **Uso de cupones** | >40% nuevos usuarios | % que usan cupón en primer pago |
+| **Upgrades** | >15% usuarios | % que hace upgrade después de trial |
+| **🆕 Tiempo promedio autenticación 3DS** | **<2 minutos** | **Tiempo desde inicio 3DS hasta completar** |
+| **🆕 Tasa de éxito MIT** | **>70%** | **% renovaciones sin requerir 3DS** |
 
 ### Métricas Técnicas
 
-| Métrica | Objetivo | Timeframe |
-|---------|----------|-----------|
-| **Uptime** | > 99.5% | Continuo |
-| **Tiempo de Respuesta API** | < 500ms (p95) | Continuo |
-| **Tiempo de Carga Páginas** | < 2 segundos | Continuo |
-| **Procesamiento de Webhooks** | < 1 segundo | Continuo |
-| **Tasa de Error en Pagos** | < 1% (errores de sistema, no del usuario) | Continuo |
-
-### Métricas de Satisfacción
-
-| Métrica | Objetivo | Método de Medición |
-|---------|----------|-------------------|
-| **NPS (Net Promoter Score)** | > 50 | Encuesta trimestral |
-| **CSAT (Customer Satisfaction)** | > 4.5/5 | Post-interacción |
-| **Tiempo de Respuesta Soporte** | < 24 horas | Tickets de soporte |
-| **Tickets de Soporte por Pagos** | < 2% de usuarios | Análisis mensual |
+| Métrica | Objetivo | Medición |
+|---------|----------|----------|
+| **Uptime** | 99.9% | Disponibilidad mensual |
+| **Latencia API** | <500ms p95 | Tiempo de respuesta percentil 95 |
+| **Tasa de éxito pagos** | >85% | % de cobros exitosos (considerando 3DS) |
+| **Tiempo resolución webhooks** | <100ms | Procesamiento de eventos Openpay |
+| **🆕 Disponibilidad servicio 3DS** | **99%** | **Uptime del servicio 3DS de Openpay** |
 
 ---
 
 ## Glosario
 
-| Término | Definición |
-|---------|-----------|
-| **ARR** | Annual Recurring Revenue - Ingresos recurrentes anuales |
-| **CFDI** | Comprobante Fiscal Digital por Internet - Factura electrónica México |
-| **Churn** | Tasa de cancelación de suscripciones |
-| **DIAN** | Dirección de Impuestos y Aduanas Nacionales - Autoridad fiscal Colombia |
-| **Downgrade** | Cambio a un plan de menor costo |
-| **LTV** | Lifetime Value - Valor total que un cliente aporta durante su relación con la empresa |
-| **MRR** | Monthly Recurring Revenue - Ingresos recurrentes mensuales |
-| **NIT** | Número de Identificación Tributaria - Colombia |
-| **Openpay** | Pasarela de pagos utilizada en México y Colombia |
-| **PAC** | Proveedor Autorizado de Certificación - Emisor de CFDI en México |
-| **Período de Gracia** | Tiempo extra otorgado después de fallos de pago antes del bloqueo |
-| **Prorrata** | Cálculo proporcional del costo por período parcial |
-| **RFC** | Registro Federal de Contribuyentes - Identificador fiscal México |
-| **SaaS** | Software as a Service - Software como servicio |
-| **Token** | Unidad de consumo para funcionalidades de IA |
-| **Trial** | Período de prueba gratuito |
-| **Upgrade** | Cambio a un plan de mayor costo |
-| **Webhook** | Notificación HTTP automática de eventos |
+- **3DS / 3D Secure:** Protocolo de autenticación adicional para pagos con tarjeta
+- **MIT (Merchant Initiated Transaction):** Exención de 3DS para pagos recurrentes
+- **MRR:** Monthly Recurring Revenue (Ingresos recurrentes mensuales)
+- **ARR:** Annual Recurring Revenue (Ingresos recurrentes anuales)
+- **Churn:** Tasa de cancelación de usuarios
+- **LTV:** Lifetime Value (Valor de tiempo de vida del cliente)
+- **CAC:** Customer Acquisition Cost (Costo de adquisición de cliente)
+- **Trial:** Período de prueba gratuito
+- **Prorrata:** Cálculo proporcional de cobro por días restantes
+- **Webhook:** Notificación HTTP de eventos desde servicio externo
+- **Token:** Unidad de consumo para funcionalidades de IA
+- **PAC:** Proveedor Autorizado de Certificación (facturación México)
+- **DIAN:** Dirección de Impuestos y Aduanas Nacionales (Colombia)
+- **CFDI:** Comprobante Fiscal Digital por Internet (factura electrónica México)
 
 ---
 
-**Documento:** PRD v1.0  
-**Fecha:** Enero 2026  
-**Próxima Revisión:** Mensual durante desarrollo
+## Referencias
 
+- [Documentación Openpay México](https://www.openpay.mx/docs/)
+- [Documentación Openpay Colombia](https://www.openpay.co/docs/)
+- **[Documentación 3D Secure Openpay](https://www.openpay.mx/docs/3d-secure. html)**
+- [SAT - Facturación Electrónica México](https://www.sat.gob.mx/)
+- [DIAN - Facturación Electrónica Colombia](https://www.dian.gov.co/)
+- **[Documentación Interna:  3DS Integration](./3DS_INTEGRATION.md)**
+
+---
+
+**Cambios en v1.1:**
+- ✅ Agregado RF-005: Integración 3D Secure obligatoria
+- ✅ Actualizado RF-006: MIT para renovaciones automáticas
+- ✅ Actualizado RF-007: Distinción de fallos por 3DS
+- ✅ Actualizado RF-014: Email #20 autenticación requerida
+- ✅ Actualizado RNF-004: Seguridad con 3DS 2.0
+- ✅ Agregadas user stories US-006, US-017 relacionadas con 3DS
+- ✅ Actualizadas estimaciones de user stories afectadas por 3DS
+- ✅ Agregadas métricas de éxito específicas de 3DS
+- ✅ Actualizado glosario con términos 3DS
+
+---
+
+**Fin del Documento**
