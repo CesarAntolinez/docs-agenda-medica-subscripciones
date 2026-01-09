@@ -1,6 +1,6 @@
-# Laravel Subscription Manager
+# Gestor de Suscripciones Laravel
 
-Complete subscription management package for Laravel with multi-gateway support, 3D Secure, polymorphic relationships, and more.
+Paquete completo de gestión de suscripciones para Laravel con soporte multi-pasarela, 3D Secure, relaciones polimórficas y más.
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue)](https://www.php.net/)
 [![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-red)](https://laravel.com/)
@@ -9,55 +9,55 @@ Complete subscription management package for Laravel with multi-gateway support,
 
 ---
 
-## 🚀 Features
+## 🚀 Características
 
-- ✅ **Polymorphic Relationships** - Subscribe Users, Companies, Teams, any model
-- ✅ **Multi-Gateway Support** - Openpay, Stripe, Mercadopago (abstracted interface)
-- ✅ **3D Secure 2.0** - Full PSD2 compliance implementation
-- ✅ **Discount Coupons** - Percentage, fixed amount, duration-based (CORE feature)
-- ✅ **Trial Periods** - Configurable trial days per plan
-- ✅ **Grace Periods** - Handle failed payments gracefully (2 months default)
-- ✅ **Payment Retries** - Automatic retry mechanism with configurable attempts
-- ✅ **Webhooks** - Process payment events asynchronously
-- ⚙️ **Optional Tokens** - Consumption-based billing module
-- ⚙️ **Optional Referrals** - Complete referral system
-- ⚙️ **Optional Invoicing** - Electronic invoicing (PAC/DIAN)
-- 🔒 **Audit Logging** - Complete audit trail for compliance
-- 📧 **20+ Notifications** - Transactional emails for all events
-
----
-
-## 📖 Documentation
-
-### Getting Started
-- **[Installation Guide](./docs/INSTALLATION.md)** - Step-by-step installation
-- **[Configuration](./docs/CONFIGURATION.md)** - Configuration options
-- **[Polymorphic Relationships](./docs/POLYMORPHIC_RELATIONSHIPS.md)** - Usage guide
-
-### Reference
-- **[Package Features](./docs/PACKAGE_FEATURES.md)** - Complete feature list
-- **[Database Schema](./docs/DATABASE_SCHEMA.md)** - Database structure
-- **[API & Webhooks](./docs/API_WEBHOOKS.md)** - API endpoints
-- **[3D Secure Integration](./docs/3DS_INTEGRATION.md)** - 3DS implementation
-- **[Architecture](./docs/ARCHITECTURE.md)** - System architecture
-- **[Use Cases](./docs/USE_CASES.md)** - Detailed use cases
-- **[User Flows](./docs/USER_FLOWS.md)** - Flow diagrams
-
-### Advanced
-- **[Extending the Package](./docs/EXTENDING.md)** - Customization guide
-- **[Recommendations](./docs/RECOMMENDATIONS.md)** - Best practices
+- ✅ **Relaciones Polimórficas** - Suscribir Usuarios, Empresas, Equipos, cualquier modelo
+- ✅ **Soporte Multi-Pasarela** - Openpay, Stripe, Mercadopago (interfaz abstraída)
+- ✅ **3D Secure 2.0** - Implementación completa de cumplimiento PSD2
+- ✅ **Cupones de Descuento** - Porcentaje, monto fijo, basado en duración (característica CORE)
+- ✅ **Períodos de Prueba** - Días de prueba configurables por plan
+- ✅ **Períodos de Gracia** - Manejar pagos fallidos con gracia (2 meses por defecto)
+- ✅ **Reintentos de Pago** - Mecanismo automático de reintento con intentos configurables
+- ✅ **Webhooks** - Procesar eventos de pago de forma asíncrona
+- ⚙️ **Tokens Opcionales** - Módulo de facturación basado en consumo
+- ⚙️ **Referidos Opcionales** - Sistema completo de referidos
+- ⚙️ **Facturación Opcional** - Facturación electrónica (PAC/DIAN)
+- 🔒 **Registro de Auditoría** - Rastro de auditoría completo para cumplimiento
+- 📧 **20+ Notificaciones** - Emails transaccionales para todos los eventos
 
 ---
 
-## 🎯 Quick Start
+## 📖 Documentación
 
-### 1. Install via Composer
+### Primeros Pasos
+- **[Guía de Instalación](./docs/INSTALLATION.md)** - Instalación paso a paso
+- **[Configuración](./docs/CONFIGURATION.md)** - Opciones de configuración
+- **[Relaciones Polimórficas](./docs/POLYMORPHIC_RELATIONSHIPS.md)** - Guía de uso
+
+### Referencia
+- **[Características del Paquete](./docs/PACKAGE_FEATURES.md)** - Lista completa de características
+- **[Esquema de Base de Datos](./docs/DATABASE_SCHEMA.md)** - Estructura de base de datos
+- **[API y Webhooks](./docs/API_WEBHOOKS.md)** - Endpoints de API
+- **[Integración 3D Secure](./docs/3DS_INTEGRATION.md)** - Implementación 3DS
+- **[Arquitectura](./docs/ARCHITECTURE.md)** - Arquitectura del sistema
+- **[Casos de Uso](./docs/USE_CASES.md)** - Casos de uso detallados
+- **[Flujos de Usuario](./docs/USER_FLOWS.md)** - Diagramas de flujo
+
+### Avanzado
+- **[Extender el Paquete](./docs/EXTENDING.md)** - Guía de personalización
+- **[Recomendaciones](./docs/RECOMMENDATIONS.md)** - Mejores prácticas
+
+---
+
+## 🎯 Inicio Rápido
+
+### 1. Instalar vía Composer
 
 ```bash
 composer require cesarantolinez/laravel-subscription-manager
 ```
 
-### 2. Publish Configuration & Migrations
+### 2. Publicar Configuración y Migraciones
 
 ```bash
 php artisan vendor:publish --tag=subscription-config
@@ -65,7 +65,7 @@ php artisan vendor:publish --tag=subscription-migrations
 php artisan migrate
 ```
 
-### 3. Configure Environment
+### 3. Configurar Entorno
 
 ```env
 # .env
@@ -76,7 +76,7 @@ OPENPAY_PRIVATE_KEY=sk_your_private_key
 OPENPAY_PUBLIC_KEY=pk_your_public_key
 ```
 
-### 4. Add Trait to Your Model
+### 4. Agregar Trait a tu Modelo
 
 ```php
 use CesarAntolinez\LaravelSubscriptionManager\Traits\HasSubscription;
@@ -87,7 +87,7 @@ class User extends Authenticatable
 }
 ```
 
-### 5. Subscribe to a Plan
+### 5. Suscribirse a un Plan
 
 ```php
 $user = User::find(1);
@@ -95,47 +95,47 @@ $plan = Plan::where('name', 'Professional Plan')->first();
 
 $subscription = $user->subscribeToPlan($plan);
 
-// Check status
+// Verificar estado
 if ($user->hasActiveSubscription()) {
-    echo "Subscription active!";
+    echo "¡Suscripción activa!";
 }
 ```
 
 ---
 
-## 💡 Core Concepts
+## 💡 Conceptos Fundamentales
 
-### Polymorphic Relationships
+### Relaciones Polimórficas
 
-Unlike traditional subscription packages, this one uses **polymorphic relationships** to work with any model:
+A diferencia de los paquetes de suscripción tradicionales, este utiliza **relaciones polimórficas** para trabajar con cualquier modelo:
 
 ```php
-// User subscriptions
+// Suscripciones de usuarios
 class User extends Authenticatable {
     use HasSubscription;
 }
 
-// Company subscriptions
+// Suscripciones de empresas
 class Company extends Model {
     use HasSubscription;
 }
 
-// Team subscriptions  
+// Suscripciones de equipos
 class Team extends Model {
     use HasSubscription;
 }
 ```
 
-All work seamlessly:
+Todos funcionan sin problemas:
 ```php
 $user->subscribeToPlan($plan);
 $company->subscribeToPlan($plan);
 $team->subscribeToPlan($plan);
 ```
 
-### Payment Gateway Abstraction
+### Abstracción de Pasarela de Pagos
 
-Easy to switch between gateways or add custom ones:
+Fácil de cambiar entre pasarelas o agregar personalizadas:
 
 ```php
 // config/subscription.php
@@ -148,138 +148,138 @@ Easy to switch between gateways or add custom ones:
 ],
 ```
 
-### Modular Features
+### Características Modulares
 
-Enable only what you need:
+Habilita solo lo que necesitas:
 
 ```php
 // config/subscription.php
 'features' => [
-    'tokens' => true,      // Consumption tracking
-    'referrals' => true,   // Referral system
-    'invoicing' => false,  // Electronic invoicing
+    'tokens' => true,      // Seguimiento de consumo
+    'referrals' => true,   // Sistema de referidos
+    'invoicing' => false,  // Facturación electrónica
 ],
 ```
 
 ---
 
-## 📊 Database Schema
+## 📊 Esquema de Base de Datos
 
-### Core Tables (Always Included)
-- `plans` - Subscription plans
-- `subscriptions` - Subscriber subscriptions (polymorphic)
-- `payments` - Payment records with 3DS
-- `payment_retries` - Retry tracking
-- `grace_periods` - Grace period management
-- `billing_data` - Tax/billing information (polymorphic)
-- `coupons` - Discount coupons **[CORE]**
-- `subscriber_coupons` - Applied coupons (polymorphic) **[CORE]**
-- `notifications` - Notification log (polymorphic)
-- `audit_logs` - Audit trail (polymorphic)
+### Tablas Principales (Siempre Incluidas)
+- `plans` - Planes de suscripción
+- `subscriptions` - Suscripciones de suscriptores (polimórfico)
+- `payments` - Registros de pagos con 3DS
+- `payment_retries` - Seguimiento de reintentos
+- `grace_periods` - Gestión de períodos de gracia
+- `billing_data` - Información fiscal/facturación (polimórfico)
+- `coupons` - Cupones de descuento **[CORE]**
+- `subscriber_coupons` - Cupones aplicados (polimórfico) **[CORE]**
+- `notifications` - Registro de notificaciones (polimórfico)
+- `audit_logs` - Rastro de auditoría (polimórfico)
 
-### Optional Tables (Separate Migrations)
-- `tokens_usage` - Token consumption (polymorphic) **[OPTIONAL]**
-- `referrals` - Referral system (polymorphic) **[OPTIONAL]**
-- `invoices` - Electronic invoicing (polymorphic) **[OPTIONAL]**
+### Tablas Opcionales (Migraciones Separadas)
+- `tokens_usage` - Consumo de tokens (polimórfico) **[OPCIONAL]**
+- `referrals` - Sistema de referidos (polimórfico) **[OPCIONAL]**
+- `invoices` - Facturación electrónica (polimórfico) **[OPCIONAL]**
 
-### No User Table
-The package does **NOT** include a users table. It uses polymorphic relationships to work with your existing models.
-
----
-
-## 🔐 Security Features
-
-### 3D Secure 2.0 Implementation
-
-- Strong Customer Authentication (SCA) compliance
-- PSD2 regulation compliance
-- Merchant-Initiated Transactions (MIT) after first payment
-- Reduced fraud and chargebacks
-
-### PCI Compliance
-
-- Card tokenization (no card storage)
-- Payment gateway handles sensitive data
-- Secure webhook verification
-- Encrypted billing data
+### Sin Tabla de Usuarios
+El paquete **NO** incluye una tabla de usuarios. Utiliza relaciones polimórficas para trabajar con tus modelos existentes.
 
 ---
 
-## 🌍 Supported Payment Gateways
+## 🔐 Características de Seguridad
 
-| Gateway | Status | 3DS Support | Countries |
+### Implementación 3D Secure 2.0
+
+- Cumplimiento de Autenticación Fuerte de Cliente (SCA)
+- Cumplimiento de regulación PSD2
+- Transacciones Iniciadas por el Comerciante (MIT) después del primer pago
+- Fraude y contracargos reducidos
+
+### Cumplimiento PCI
+
+- Tokenización de tarjetas (sin almacenamiento de tarjetas)
+- La pasarela de pagos maneja datos sensibles
+- Verificación segura de webhooks
+- Datos de facturación encriptados
+
+---
+
+## 🌍 Pasarelas de Pago Soportadas
+
+| Pasarela | Estado | Soporte 3DS | Países |
 |---------|--------|-------------|-----------|
-| **Openpay** | ✅ Full | ✅ Yes | MX, CO |
-| **Stripe** | 🔄 Coming Soon | ✅ Yes | Global |
-| **Mercadopago** | 🔄 Coming Soon | ✅ Yes | LATAM |
+| **Openpay** | ✅ Completo | ✅ Sí | MX, CO |
+| **Stripe** | 🔄 Próximamente | ✅ Sí | Global |
+| **Mercadopago** | 🔄 Próximamente | ✅ Sí | LATAM |
 
 ---
 
-## 📧 Notification Types
+## 📧 Tipos de Notificaciones
 
-20+ transactional emails:
-- Welcome, payment success/failed, reminders
-- Trial expiring/expired
-- Grace period start/reminders
-- Subscription cancelled/reactivated
-- Plan changed (upgrade/downgrade)
-- Referral successful
-- Invoice available
-- Token usage alerts (50%, 75%, 90%, 100%)
-- **Payment authentication required (3DS)**
+20+ emails transaccionales:
+- Bienvenida, pago exitoso/fallido, recordatorios
+- Prueba por expirar/expirada
+- Inicio de período de gracia/recordatorios
+- Suscripción cancelada/reactivada
+- Plan cambiado (upgrade/downgrade)
+- Referido exitoso
+- Factura disponible
+- Alertas de uso de tokens (50%, 75%, 90%, 100%)
+- **Autenticación de pago requerida (3DS)**
 
 ---
 
-## 🧪 Testing
+## 🧪 Pruebas
 
 ```bash
-# Run package tests
+# Ejecutar pruebas del paquete
 composer test
 
-# Run with coverage
+# Ejecutar con cobertura
 composer test:coverage
 ```
 
 ---
 
-## 📦 Requirements
+## 📦 Requisitos
 
 - **PHP:** 8.1+
-- **Laravel:** 10.x or 11.x
-- **Database:** MySQL 8.0+ / PostgreSQL 13+ / MariaDB 10.5+
-- **Optional:** Redis (recommended for queues and cache)
+- **Laravel:** 10.x o 11.x
+- **Base de Datos:** MySQL 8.0+ / PostgreSQL 13+ / MariaDB 10.5+
+- **Opcional:** Redis (recomendado para colas y caché)
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contribuir
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
----
-
-## 📄 License
-
-This package is open-sourced software licensed under the [MIT license](LICENSE).
+¡Las contribuciones son bienvenidas! Por favor consulta [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles.
 
 ---
 
-## 📞 Support
+## 📄 Licencia
 
-- **Documentation:** [Full Documentation](./docs/)
-- **Issues:** [GitHub Issues](https://github.com/CesarAntolinez/laravel-subscription-manager/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/CesarAntolinez/laravel-subscription-manager/discussions)
+Este paquete es software de código abierto licenciado bajo la [licencia MIT](LICENSE).
 
 ---
 
-## 🙏 Credits
+## 📞 Soporte
 
-Created and maintained by [Cesar Antolinez](https://github.com/CesarAntolinez)
+- **Documentación:** [Documentación Completa](./docs/)
+- **Problemas:** [GitHub Issues](https://github.com/CesarAntolinez/laravel-subscription-manager/issues)
+- **Discusiones:** [GitHub Discussions](https://github.com/CesarAntolinez/laravel-subscription-manager/discussions)
 
 ---
 
-## 📝 Changelog
+## 🙏 Créditos
 
-See [CHANGELOG.md](CHANGELOG.md) for recent changes.
+Creado y mantenido por [Cesar Antolinez](https://github.com/CesarAntolinez)
+
+---
+
+## 📝 Registro de Cambios
+
+Ver [CHANGELOG.md](CHANGELOG.md) para cambios recientes.
 
 ---
 

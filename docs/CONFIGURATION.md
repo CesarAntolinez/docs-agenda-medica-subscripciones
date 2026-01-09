@@ -1,65 +1,65 @@
-# Configuration Guide
-## Laravel Subscription Manager Package
+# Guía de Configuración
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
-
----
-
-## 📑 Table of Contents
-
-1. [Overview](#overview)
-2. [Core Settings](#core-settings)
-3. [Payment Gateway Configuration](#payment-gateway-configuration)
-4. [Optional Features](#optional-features)
-5. [Business Rules](#business-rules)
-6. [Notification Settings](#notification-settings)
-7. [Advanced Configuration](#advanced-configuration)
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Overview
+## 📑 Tabla de Contenidos
 
-The package configuration file is located at `config/subscription.php` after publishing.
-
-All configuration values can be set via environment variables for easy deployment across different environments.
+1. [Visión General](#visión-general)
+2. [Configuraciones Principales](#configuraciones-principales)
+3. [Configuración de Pasarela de Pagos](#configuración-de-pasarela-de-pagos)
+4. [Características Opcionales](#características-opcionales)
+5. [Reglas de Negocio](#reglas-de-negocio)
+6. [Configuraciones de Notificaciones](#configuraciones-de-notificaciones)
+7. [Configuración Avanzada](#configuración-avanzada)
 
 ---
 
-## Core Settings
+## Visión General
 
-### Subscriber Model
+El archivo de configuración del paquete se encuentra en `config/subscription.php` después de publicarlo.
 
-Defines which model in your application can have subscriptions.
+Todos los valores de configuración se pueden establecer a través de variables de entorno para facilitar el despliegue en diferentes entornos.
+
+---
+
+## Configuraciones Principales
+
+### Modelo Suscriptor
+
+Define qué modelo en tu aplicación puede tener suscripciones.
 
 ```php
 'subscriber_model' => env('SUBSCRIPTION_SUBSCRIBER_MODEL', 'App\\Models\\User'),
 ```
 
-**Environment Variable:**
+**Variable de Entorno:**
 ```env
 SUBSCRIPTION_SUBSCRIBER_MODEL=App\\Models\\User
 ```
 
-**Examples:**
+**Ejemplos:**
 ```php
-// User subscriptions
+// Suscripciones de usuarios
 'subscriber_model' => 'App\\Models\\User'
 
-// Company subscriptions
+// Suscripciones de empresas
 'subscriber_model' => 'App\\Models\\Company'
 
-// Team subscriptions
+// Suscripciones de equipos
 'subscriber_model' => 'App\\Models\\Team'
 ```
 
-**Note:** The package uses **polymorphic relationships**, so you can have multiple subscribable models. Just add the `HasSubscription` trait to each model.
+**Nota:** El paquete utiliza **relaciones polimórficas**, por lo que puedes tener múltiples modelos suscribibles. Solo agrega el trait `HasSubscription` a cada modelo.
 
 ---
 
-### Currency Settings
+### Configuraciones de Moneda
 
-Define supported currencies and formatting.
+Definir monedas soportadas y formato.
 
 ```php
 'currencies' => [
@@ -80,22 +80,22 @@ Define supported currencies and formatting.
 'default_currency' => env('SUBSCRIPTION_DEFAULT_CURRENCY', 'MXN'),
 ```
 
-**Environment Variable:**
+**Variable de Entorno:**
 ```env
 SUBSCRIPTION_DEFAULT_CURRENCY=MXN
 ```
 
 ---
 
-### Trial Period
+### Período de Prueba
 
-Configure default trial period for new subscriptions.
+Configurar el período de prueba predeterminado para nuevas suscripciones.
 
 ```php
 'trial_days' => env('SUBSCRIPTION_DEFAULT_TRIAL_DAYS', 14),
 ```
 
-**Environment Variable:**
+**Variable de Entorno:**
 ```env
 SUBSCRIPTION_DEFAULT_TRIAL_DAYS=14
 ```

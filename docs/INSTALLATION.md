@@ -1,98 +1,98 @@
-# Installation Guide
-## Laravel Subscription Manager Package
+# Guía de Instalación
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026
-
----
-
-## 📑 Table of Contents
-
-1. [Requirements](#requirements)
-2. [Installation via Composer](#installation-via-composer)
-3. [Configuration](#configuration)
-4. [Database Setup](#database-setup)
-5. [Model Setup](#model-setup)
-6. [Payment Gateway Setup](#payment-gateway-setup)
-7. [Queue Configuration](#queue-configuration)
-8. [Verification](#verification)
+**Versión:** 2.0  
+**Fecha:** Enero 2026
 
 ---
 
-## Requirements
+## 📑 Tabla de Contenidos
 
-### System Requirements
+1. [Requisitos](#requisitos)
+2. [Instalación vía Composer](#instalación-vía-composer)
+3. [Configuración](#configuración)
+4. [Configuración de Base de Datos](#configuración-de-base-de-datos)
+5. [Configuración del Modelo](#configuración-del-modelo)
+6. [Configuración de Pasarela de Pagos](#configuración-de-pasarela-de-pagos)
+7. [Configuración de Colas](#configuración-de-colas)
+8. [Verificación](#verificación)
 
-- **PHP:** 8.1 or higher
-- **Laravel:** 10.x or 11.x
-- **Database:** MySQL 8.0+ / PostgreSQL 13+ / MariaDB 10.5+
-- **PHP Extensions:**
+---
+
+## Requisitos
+
+### Requisitos del Sistema
+
+- **PHP:** 8.1 o superior
+- **Laravel:** 10.x o 11.x
+- **Base de Datos:** MySQL 8.0+ / PostgreSQL 13+ / MariaDB 10.5+
+- **Extensiones PHP:**
   - PDO
   - Mbstring
   - JSON
   - OpenSSL
-  - BCMath (recommended for currency calculations)
+  - BCMath (recomendado para cálculos de moneda)
 
-### Recommended
+### Recomendado
 
-- **Redis:** For queue and cache (optional but recommended)
-- **Supervisor:** For queue workers in production
+- **Redis:** Para colas y caché (opcional pero recomendado)
+- **Supervisor:** Para workers de cola en producción
 - **Composer:** 2.x
 
 ---
 
-## Installation via Composer
+## Instalación vía Composer
 
-### Step 1: Install the Package
+### Paso 1: Instalar el Paquete
 
 ```bash
 composer require cesarantolinez/laravel-subscription-manager
 ```
 
-### Step 2: Publish Configuration Files
+### Paso 2: Publicar Archivos de Configuración
 
-Publish the package configuration file:
+Publicar el archivo de configuración del paquete:
 
 ```bash
 php artisan vendor:publish --tag=subscription-config
 ```
 
-This creates `config/subscription.php` with default settings.
+Esto crea `config/subscription.php` con la configuración predeterminada.
 
-### Step 3: Publish Migrations
+### Paso 3: Publicar Migraciones
 
-Publish the database migrations:
+Publicar las migraciones de base de datos:
 
 ```bash
 php artisan vendor:publish --tag=subscription-migrations
 ```
 
-**Optional Module Migrations:**
+**Migraciones de Módulos Opcionales:**
 
-If you want to use optional features, publish their migrations:
+Si deseas usar características opcionales, publica sus migraciones:
 
 ```bash
-# Publish tokens module migration
+# Publicar migración del módulo de tokens
 php artisan vendor:publish --tag=subscription-migrations-tokens
 
-# Publish referrals module migration
+# Publicar migración del módulo de referidos
 php artisan vendor:publish --tag=subscription-migrations-referrals
 
-# Publish invoicing module migration
+# Publicar migración del módulo de facturación
 php artisan vendor:publish --tag=subscription-migrations-invoicing
 ```
 
-### Step 4: Publish Views (Optional)
+### Paso 4: Publicar Vistas (Opcional)
 
-If you want to customize notification email templates:
+Si deseas personalizar las plantillas de correo de notificaciones:
 
 ```bash
 php artisan vendor:publish --tag=subscription-views
 ```
 
-### Step 5: Publish Translations (Optional)
+### Paso 5: Publicar Traducciones (Opcional)
 
-If you want to customize notification messages:
+Si deseas personalizar los mensajes de notificaciones:
 
 ```bash
 php artisan vendor:publish --tag=subscription-lang
@@ -100,59 +100,59 @@ php artisan vendor:publish --tag=subscription-lang
 
 ---
 
-## Configuration
+## Configuración
 
-### Step 1: Configure Environment Variables
+### Paso 1: Configurar Variables de Entorno
 
-Add the following to your `.env` file:
+Agrega lo siguiente a tu archivo `.env`:
 
 ```env
 # ============================================================================
-# Subscription Package Configuration
+# Configuración del Paquete de Suscripciones
 # ============================================================================
 
-# Subscriber Model (the model that will have subscriptions)
+# Modelo Suscriptor (el modelo que tendrá suscripciones)
 SUBSCRIPTION_SUBSCRIBER_MODEL=App\\Models\\User
 
-# Payment Gateway
+# Pasarela de Pagos
 PAYMENT_GATEWAY=openpay
 
-# Openpay Configuration (if using Openpay)
+# Configuración de Openpay (si usas Openpay)
 OPENPAY_MERCHANT_ID=your-merchant-id
 OPENPAY_PRIVATE_KEY=sk_your_private_key
 OPENPAY_PUBLIC_KEY=pk_your_public_key
 OPENPAY_SANDBOX_MODE=true
 OPENPAY_COUNTRY=MX  # MX or CO
 
-# Stripe Configuration (if using Stripe)
+# Configuración de Stripe (si usas Stripe)
 STRIPE_KEY=pk_test_your_key
 STRIPE_SECRET=sk_test_your_secret
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
-# Optional Features
+# Características Opcionales
 SUBSCRIPTION_TOKENS_ENABLED=true
 SUBSCRIPTION_REFERRALS_ENABLED=true
 SUBSCRIPTION_INVOICING_ENABLED=false
 
-# Trial Configuration
+# Configuración de Prueba
 SUBSCRIPTION_DEFAULT_TRIAL_DAYS=14
 
-# Grace Period Configuration
+# Configuración de Período de Gracia
 SUBSCRIPTION_GRACE_PERIOD_MONTHS=2
 
-# Payment Retry Configuration
+# Configuración de Reintentos de Pago
 SUBSCRIPTION_MAX_PAYMENT_RETRIES=3
-SUBSCRIPTION_RETRY_DAYS=3,7,14  # Days between retries
+SUBSCRIPTION_RETRY_DAYS=3,7,14  # Días entre reintentos
 
-# Notification Configuration
+# Configuración de Notificaciones
 SUBSCRIPTION_NOTIFICATIONS_ENABLED=true
 SUBSCRIPTION_NOTIFICATION_FROM_ADDRESS=noreply@example.com
 SUBSCRIPTION_NOTIFICATION_FROM_NAME="Subscription Service"
 ```
 
-### Step 2: Configure Subscriber Model
+### Paso 2: Configurar Modelo Suscriptor
 
-In your `config/subscription.php`, verify the subscriber model:
+En tu `config/subscription.php`, verifica el modelo suscriptor:
 
 ```php
 'subscriber_model' => env('SUBSCRIPTION_SUBSCRIBER_MODEL', 'App\\Models\\User'),
@@ -160,13 +160,13 @@ In your `config/subscription.php`, verify the subscriber model:
 
 ---
 
-## Database Setup
+## Configuración de Base de Datos
 
-### Step 1: Review Migrations
+### Paso 1: Revisar Migraciones
 
-Before running migrations, review the published migration files in `database/migrations/`:
+Antes de ejecutar las migraciones, revisa los archivos de migración publicados en `database/migrations/`:
 
-- Core migrations (always run):
+- Migraciones principales (siempre se ejecutan):
   - `xxxx_xx_xx_create_plans_table.php`
   - `xxxx_xx_xx_create_subscriptions_table.php`
   - `xxxx_xx_xx_create_payments_table.php`
@@ -178,28 +178,28 @@ Before running migrations, review the published migration files in `database/mig
   - `xxxx_xx_xx_create_notifications_table.php`
   - `xxxx_xx_xx_create_audit_logs_table.php`
 
-- Optional migrations (only if features enabled):
+- Migraciones opcionales (solo si las características están habilitadas):
   - `xxxx_xx_xx_create_tokens_usage_table.php`
   - `xxxx_xx_xx_create_referrals_table.php`
   - `xxxx_xx_xx_create_invoices_table.php`
 
-### Step 2: Run Migrations
+### Paso 2: Ejecutar Migraciones
 
 ```bash
 php artisan migrate
 ```
 
-This will create all the necessary tables in your database.
+Esto creará todas las tablas necesarias en tu base de datos.
 
-### Step 3: Seed Sample Plans (Optional)
+### Paso 3: Poblar Planes de Ejemplo (Opcional)
 
-Create a seeder for your subscription plans:
+Crear un seeder para tus planes de suscripción:
 
 ```bash
 php artisan make:seeder SubscriptionPlanSeeder
 ```
 
-Example seeder content:
+Contenido de ejemplo del seeder:
 
 ```php
 <?php
@@ -216,7 +216,7 @@ class SubscriptionPlanSeeder extends Seeder
         DB::table('plans')->insert([
             [
                 'name' => 'Starter Plan',
-                'description' => 'Perfect for individuals and small teams',
+                'description' => 'Perfecto para individuos y equipos pequeños',
                 'tokens_monthly' => 5000,
                 'periodicity' => 'monthly',
                 'price_mxn' => 299.00,
@@ -228,7 +228,7 @@ class SubscriptionPlanSeeder extends Seeder
             ],
             [
                 'name' => 'Professional Plan',
-                'description' => 'For growing businesses',
+                'description' => 'Para negocios en crecimiento',
                 'tokens_monthly' => 10000,
                 'periodicity' => 'monthly',
                 'price_mxn' => 499.00,
@@ -240,7 +240,7 @@ class SubscriptionPlanSeeder extends Seeder
             ],
             [
                 'name' => 'Enterprise Plan',
-                'description' => 'For large organizations',
+                'description' => 'Para grandes organizaciones',
                 'tokens_monthly' => 20000,
                 'periodicity' => 'monthly',
                 'price_mxn' => 899.00,
@@ -255,7 +255,7 @@ class SubscriptionPlanSeeder extends Seeder
 }
 ```
 
-Run the seeder:
+Ejecutar el seeder:
 
 ```bash
 php artisan db:seed --class=SubscriptionPlanSeeder
@@ -263,13 +263,13 @@ php artisan db:seed --class=SubscriptionPlanSeeder
 
 ---
 
-## Model Setup
+## Configuración del Modelo
 
-### Step 1: Add Trait to Your Subscriber Model
+### Paso 1: Agregar Trait a tu Modelo Suscriptor
 
-Add the `HasSubscription` trait to any model you want to make subscribable.
+Agrega el trait `HasSubscription` a cualquier modelo que desees hacer suscribible.
 
-**Example: User Model**
+**Ejemplo: Modelo User**
 
 ```php
 <?php
@@ -283,11 +283,11 @@ class User extends Authenticatable
 {
     use HasSubscription;
 
-    // ... rest of your model
+    // ... resto de tu modelo
 }
 ```
 
-**Example: Company Model**
+**Ejemplo: Modelo Company**
 
 ```php
 <?php
@@ -301,11 +301,11 @@ class Company extends Model
 {
     use HasSubscription;
 
-    // ... rest of your model
+    // ... resto de tu modelo
 }
 ```
 
-**Example: Team Model**
+**Ejemplo: Modelo Team**
 
 ```php
 <?php
@@ -319,96 +319,96 @@ class Team extends Model
 {
     use HasSubscription;
 
-    // ... rest of your model
+    // ... resto de tu modelo
 }
 ```
 
-### Step 2: Verify Trait Methods
+### Paso 2: Verificar Métodos del Trait
 
-The `HasSubscription` trait provides the following methods:
+El trait `HasSubscription` proporciona los siguientes métodos:
 
 ```php
-// Subscribe to a plan
+// Suscribirse a un plan
 $user->subscribeToPlan($plan, $periodicity, $cardToken);
 
-// Get active subscription
+// Obtener suscripción activa
 $subscription = $user->activeSubscription();
 
-// Check subscription status
+// Verificar estado de suscripción
 $user->hasActiveSubscription();
 $user->isOnTrial();
 $user->isOnGracePeriod();
 
-// Cancel subscription
+// Cancelar suscripción
 $user->cancelSubscription();
 
-// Get subscription history
+// Obtener historial de suscripciones
 $subscriptions = $user->subscriptions;
 
-// Get billing data
+// Obtener datos de facturación
 $billingData = $user->billingData;
 
-// Apply coupon
+// Aplicar cupón
 $user->applyCoupon($coupon);
 
-// Get notifications
+// Obtener notificaciones
 $notifications = $user->subscriptionNotifications;
 ```
 
 ---
 
-## Payment Gateway Setup
+## Configuración de Pasarela de Pagos
 
-### Openpay Setup
+### Configuración de Openpay
 
-#### Step 1: Create Openpay Account
+#### Paso 1: Crear Cuenta de Openpay
 
-1. Go to [Openpay](https://www.openpay.mx/) (Mexico) or [Openpay Colombia](https://www.openpay.co/)
-2. Create a merchant account
-3. Obtain your credentials:
+1. Ve a [Openpay](https://www.openpay.mx/) (México) o [Openpay Colombia](https://www.openpay.co/)
+2. Crea una cuenta de comerciante
+3. Obtén tus credenciales:
    - Merchant ID
    - Private Key
    - Public Key
 
-#### Step 2: Configure Openpay
+#### Paso 2: Configurar Openpay
 
-Update your `.env`:
+Actualiza tu `.env`:
 
 ```env
 PAYMENT_GATEWAY=openpay
 OPENPAY_MERCHANT_ID=your_merchant_id
 OPENPAY_PRIVATE_KEY=sk_your_private_key
 OPENPAY_PUBLIC_KEY=pk_your_public_key
-OPENPAY_SANDBOX_MODE=true  # Set to false in production
-OPENPAY_COUNTRY=MX  # or CO
+OPENPAY_SANDBOX_MODE=true  # Establecer en false en producción
+OPENPAY_COUNTRY=MX  # o CO
 ```
 
-#### Step 3: Setup Webhooks
+#### Paso 3: Configurar Webhooks
 
-Configure webhooks in your Openpay dashboard:
+Configurar webhooks en tu panel de Openpay:
 
-**Webhook URL:**
+**URL del Webhook:**
 ```
 https://yourdomain.com/api/subscriptions/webhooks/openpay
 ```
 
-**Events to subscribe:**
+**Eventos a suscribir:**
 - `charge.succeeded`
 - `charge.failed`
 - `charge.refunded`
 - `charge.cancelled`
 
-### Stripe Setup (Alternative)
+### Configuración de Stripe (Alternativa)
 
-#### Step 1: Create Stripe Account
+#### Paso 1: Crear Cuenta de Stripe
 
-1. Go to [Stripe](https://stripe.com/)
-2. Create an account
-3. Obtain API keys from Dashboard
+1. Ve a [Stripe](https://stripe.com/)
+2. Crea una cuenta
+3. Obtén las claves API desde el Dashboard
 
-#### Step 2: Configure Stripe
+#### Paso 2: Configurar Stripe
 
-Update your `.env`:
+Actualiza tu `.env`:
 
 ```env
 PAYMENT_GATEWAY=stripe
@@ -417,38 +417,38 @@ STRIPE_SECRET=sk_test_your_secret
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
 
-#### Step 3: Setup Webhooks
+#### Paso 3: Configurar Webhooks
 
-Configure webhooks in Stripe dashboard:
+Configurar webhooks en el panel de Stripe:
 
-**Webhook URL:**
+**URL del Webhook:**
 ```
 https://yourdomain.com/api/subscriptions/webhooks/stripe
 ```
 
 ---
 
-## Queue Configuration
+## Configuración de Colas
 
-### Step 1: Configure Queue Driver
+### Paso 1: Configurar Driver de Colas
 
-The package uses queues for background processing. Configure your queue driver in `.env`:
+El paquete utiliza colas para procesamiento en segundo plano. Configura tu driver de colas en `.env`:
 
 ```env
-QUEUE_CONNECTION=redis  # or database, sqs, etc.
+QUEUE_CONNECTION=redis  # o database, sqs, etc.
 ```
 
-### Step 2: Start Queue Worker
+### Paso 2: Iniciar Worker de Colas
 
-For development:
+Para desarrollo:
 
 ```bash
 php artisan queue:work
 ```
 
-For production, use Supervisor:
+Para producción, usa Supervisor:
 
-**Create supervisor config** (`/etc/supervisor/conf.d/laravel-worker.conf`):
+**Crear configuración de supervisor** (`/etc/supervisor/conf.d/laravel-worker.conf`):
 
 ```ini
 [program:laravel-worker]
@@ -465,7 +465,7 @@ stdout_logfile=/path/to/your/project/storage/logs/worker.log
 stopwaitsecs=3600
 ```
 
-Reload Supervisor:
+Recargar Supervisor:
 
 ```bash
 sudo supervisorctl reread
@@ -475,46 +475,46 @@ sudo supervisorctl start laravel-worker:*
 
 ---
 
-## Verification
+## Verificación
 
-### Step 1: Verify Installation
+### Paso 1: Verificar Instalación
 
-Run the package verification command:
+Ejecutar el comando de verificación del paquete:
 
 ```bash
 php artisan subscription:verify
 ```
 
-This will check:
-- ✅ Config file exists
-- ✅ Migrations ran successfully
-- ✅ Subscriber model exists and uses trait
-- ✅ Payment gateway configured
-- ✅ Queue configured
+Esto verificará:
+- ✅ El archivo de configuración existe
+- ✅ Las migraciones se ejecutaron exitosamente
+- ✅ El modelo suscriptor existe y usa el trait
+- ✅ La pasarela de pagos está configurada
+- ✅ Las colas están configuradas
 
-### Step 2: Test Subscription Creation
+### Paso 2: Probar Creación de Suscripción
 
-Test creating a subscription in `tinker`:
+Probar la creación de una suscripción en `tinker`:
 
 ```bash
 php artisan tinker
 ```
 
 ```php
-// Get a user and a plan
+// Obtener un usuario y un plan
 $user = App\Models\User::first();
 $plan = DB::table('plans')->first();
 
-// Subscribe
+// Suscribir
 $subscription = $user->subscribeToPlan($plan);
 
-// Check
-$user->hasActiveSubscription(); // should return true
+// Verificar
+$user->hasActiveSubscription(); // debería retornar true
 ```
 
-### Step 3: Verify Webhook Endpoint
+### Paso 3: Verificar Endpoint del Webhook
 
-Test that your webhook endpoint is accessible:
+Probar que tu endpoint de webhook es accesible:
 
 ```bash
 curl -X POST https://yourdomain.com/api/subscriptions/webhooks/openpay \
@@ -522,65 +522,65 @@ curl -X POST https://yourdomain.com/api/subscriptions/webhooks/openpay \
   -d '{"test": "data"}'
 ```
 
-Should return a response (may be an error if signature is invalid, but endpoint should be reachable).
+Debería retornar una respuesta (puede ser un error si la firma es inválida, pero el endpoint debería ser alcanzable).
 
 ---
 
-## Troubleshooting
+## Solución de Problemas
 
-### Common Issues
+### Problemas Comunes
 
-**Issue: Migrations fail**
+**Problema: Las migraciones fallan**
 ```
-Solution: Ensure your database connection is configured correctly in .env
-Check: php artisan migrate:status
-```
-
-**Issue: Trait not found**
-```
-Solution: Run composer dump-autoload
-Command: composer dump-autoload
+Solución: Asegúrate de que tu conexión a la base de datos esté configurada correctamente en .env
+Verificar: php artisan migrate:status
 ```
 
-**Issue: Queue jobs not processing**
+**Problema: Trait no encontrado**
 ```
-Solution: Ensure queue worker is running
-Check: ps aux | grep "queue:work"
-Start: php artisan queue:work
+Solución: Ejecuta composer dump-autoload
+Comando: composer dump-autoload
 ```
 
-**Issue: Webhooks not receiving events**
+**Problema: Los trabajos de cola no se procesan**
 ```
-Solution: 
-1. Verify webhook URL is publicly accessible
-2. Check webhook signature validation
-3. Review logs: storage/logs/laravel.log
+Solución: Asegúrate de que el worker de colas esté ejecutándose
+Verificar: ps aux | grep "queue:work"
+Iniciar: php artisan queue:work
+```
+
+**Problema: Los webhooks no reciben eventos**
+```
+Solución: 
+1. Verifica que la URL del webhook sea accesible públicamente
+2. Verifica la validación de firma del webhook
+3. Revisa los logs: storage/logs/laravel.log
 ```
 
 ---
 
-## Next Steps
+## Próximos Pasos
 
-After successful installation:
+Después de una instalación exitosa:
 
-1. **Configuration:** See [CONFIGURATION.md](./CONFIGURATION.md) for detailed configuration options
-2. **Usage:** See [POLYMORPHIC_RELATIONSHIPS.md](./POLYMORPHIC_RELATIONSHIPS.md) for usage examples
-3. **Extending:** See [EXTENDING.md](./EXTENDING.md) for customization options
-4. **Database:** See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) for database details
-
----
-
-## Support
-
-**Documentation:** https://github.com/CesarAntolinez/laravel-subscription-manager/docs  
-**Issues:** https://github.com/CesarAntolinez/laravel-subscription-manager/issues  
-**Discussions:** https://github.com/CesarAntolinez/laravel-subscription-manager/discussions
+1. **Configuración:** Ver [CONFIGURATION.md](./CONFIGURATION.md) para opciones de configuración detalladas
+2. **Uso:** Ver [POLYMORPHIC_RELATIONSHIPS.md](./POLYMORPHIC_RELATIONSHIPS.md) para ejemplos de uso
+3. **Extensión:** Ver [EXTENDING.md](./EXTENDING.md) para opciones de personalización
+4. **Base de Datos:** Ver [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) para detalles de la base de datos
 
 ---
 
-**Version:** 2.0  
-**Last Updated:** January 2026
+## Soporte
+
+**Documentación:** https://github.com/CesarAntolinez/laravel-subscription-manager/docs  
+**Problemas:** https://github.com/CesarAntolinez/laravel-subscription-manager/issues  
+**Discusiones:** https://github.com/CesarAntolinez/laravel-subscription-manager/discussions
 
 ---
 
-**End of Document**
+**Versión:** 2.0  
+**Última Actualización:** Enero 2026
+
+---
+
+**Fin del Documento**
