@@ -1,265 +1,287 @@
-# Documentación Técnica - Sistema de Suscripciones
-## Plataforma SaaS de Gestión Médica
+# Laravel Subscription Manager
 
-Documentación completa del sistema de planes y suscripciones operando en México y Colombia.
+Complete subscription management package for Laravel with multi-gateway support, 3D Secure, polymorphic relationships, and more.
 
----
-
-## 📚 Índice de Documentación
-
-### Documentos Principales
-
-1. **[📋 PRD - Product Requirements Document](./docs/PRD.md)**
-   - Requerimientos funcionales y no funcionales completos
-   - User stories por epic
-   - Criterios de aceptación
-   - Glosario de términos
-
-2. **[🏗️ ARCHITECTURE - Arquitectura del Sistema](./docs/ARCHITECTURE.md)**
-   - Diagrama de arquitectura general
-   - Componentes y módulos
-   - Patrones de diseño
-   - Jobs, queues y eventos
-   - Integraciones externas
-
-3. **[🗄️ DATABASE_SCHEMA - Esquema de Base de Datos](./docs/DATABASE_SCHEMA.md)**
-   - Diagrama ERD completo
-   - 14 tablas principales detalladas
-   - Relaciones y foreign keys
-   - Índices y optimizaciones
-   - Políticas de retención
-
-4. **[🔄 USER_FLOWS - Diagramas de Flujo de Usuario](./docs/USER_FLOWS.md)**
-   - 8 flujos principales con diagramas Mermaid
-   - Registro y trial
-   - Pagos recurrentes y manuales
-   - Upgrade/downgrade
-   - Referidos, cupones y facturación
-
-5. **[📊 USE_CASES - Casos de Uso Detallados](./docs/USE_CASES.md)**
-   - 19 casos de uso completos
-   - Flujos principales y alternativos
-   - Precondiciones y postcondiciones
-   - Reglas de negocio
-
-6. **[📅 ROADMAP - Roadmap por Fases](./docs/ROADMAP.md)**
-   - Fase 1: MVP (3-4 meses) con checklist completo
-   - Fase 2: Features avanzados (2-3 meses)
-   - Fase 3: Optimización y escalabilidad (2-3 meses)
-   - Timeline estimado: 7-10 meses
-
-7. **[🔌 API_WEBHOOKS - APIs y Webhooks](./docs/API_WEBHOOKS.md)**
-   - Endpoints REST completos con ejemplos
-   - Webhooks de Openpay (charge.succeeded, charge.failed, charge.refunded)
-   - Autenticación y seguridad
-   - Códigos de error y rate limiting
-
-8. **[📐 DATABASE_DDL - Scripts SQL](./docs/DATABASE_DDL.sql)**
-   - CREATE TABLE de las 14+ tablas
-   - Índices estratégicos
-   - Foreign keys y constraints
-   - Configuración MySQL optimizada
-
-9. **[🎯 RECOMMENDATIONS - Recomendaciones Técnicas](./docs/RECOMMENDATIONS.md)**
-   - Infraestructura (VPS/Cloud obligatorio)
-   - Base de datos y performance
-   - Laravel best practices
-   - Seguridad OWASP Top 10
-   - Testing y monitoreo
-   - Escalabilidad futura
+[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue)](https://www.php.net/)
+[![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-red)](https://laravel.com/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success)](https://github.com/CesarAntolinez/laravel-subscription-manager)
 
 ---
 
-## 🎯 Resumen del Proyecto
+## 🚀 Features
 
-**Objetivo:** Sistema de suscripciones recurrentes con consumo de tokens para funcionalidades de IA
-
-**Stack Tecnológico:**
-- **Backend:** Laravel 8 → 10
-- **Frontend:** Bootstrap 4.6
-- **Base de Datos:** MySQL 8.0+
-- **Pasarela de Pagos:** Openpay (MXN/COP)
-- **Cache/Queues:** Redis (recomendado)
-- **Hosting:** VPS/Cloud (DigitalOcean, AWS Lightsail)
-
-**Arquitectura:** 2 instancias independientes (México/Colombia)
-
-**Usuarios Estimados:** 10,000+ en 6 meses
-
----
-
-## ✨ Características Principales
-
-### Planes y Suscripciones
-- 3 planes disponibles: "Google Tech + IA 50/100/200"
-- Periodicidades: Mensual, Anual, Anual con cobros mensuales
-- Trial personalizable por plan (con tarjeta obligatoria)
-- Tokens mensuales no acumulables con reseteo automático
-
-### Sistema de Pagos
-- **Tarjeta:** Cobros recurrentes automáticos vía Openpay
-- **Transferencia:** Opción de pago manual con confirmación admin
-- **Reintentos:** 3 intentos automáticos en caso de fallo
-- **Período de Gracia:** 2 meses con acceso completo antes de bloqueo
-- **Upgrade/Downgrade:** Inmediato con prorrata / Programado
-
-### Tokens de Consumo
-- Asignación mensual según plan
-- Tracking en tiempo real
-- Alertas automáticas: 50%, 75%, 90%, 100%
-- Reseteo automático en cada renovación
-- Dashboard visual de consumo
-
-### Descuentos y Referidos
-- **Cupones:** Porcentaje o monto fijo, temporal o permanente
-- **Referidos:** Código único, beneficios configurables para referidor y referido
-- **Validaciones:** No acumulables, límites de uso, expiración
-
-### Facturación Electrónica
-- **México:** CFDI vía PAC (solicitud mismo mes)
-- **Colombia:** Factura DIAN (solicitud máx. 5 días)
-- Datos fiscales encriptados
-- Generación externa con subida de PDF
-- Envío automático por email
-
-### Notificaciones
-- 17+ emails transaccionales MVP
-- Templates responsive con branding
-- Envío asíncrono via queues
-- Tracking completo de notificaciones
-
-### Panel de Administración
-- Dashboard con métricas clave (MRR, ARR, churn)
-- Gestión completa de usuarios y suscripciones
-- CRUD de planes y cupones
-- Procesamiento de pagos manuales y facturas
-- Reportes y exportaciones
-- Audit log completo
+- ✅ **Polymorphic Relationships** - Subscribe Users, Companies, Teams, any model
+- ✅ **Multi-Gateway Support** - Openpay, Stripe, Mercadopago (abstracted interface)
+- ✅ **3D Secure 2.0** - Full PSD2 compliance implementation
+- ✅ **Discount Coupons** - Percentage, fixed amount, duration-based (CORE feature)
+- ✅ **Trial Periods** - Configurable trial days per plan
+- ✅ **Grace Periods** - Handle failed payments gracefully (2 months default)
+- ✅ **Payment Retries** - Automatic retry mechanism with configurable attempts
+- ✅ **Webhooks** - Process payment events asynchronously
+- ⚙️ **Optional Tokens** - Consumption-based billing module
+- ⚙️ **Optional Referrals** - Complete referral system
+- ⚙️ **Optional Invoicing** - Electronic invoicing (PAC/DIAN)
+- 🔒 **Audit Logging** - Complete audit trail for compliance
+- 📧 **20+ Notifications** - Transactional emails for all events
 
 ---
 
-## 🚀 Próximos Pasos
+## 📖 Documentation
 
-### Para Equipos de Desarrollo
+### Getting Started
+- **[Installation Guide](./docs/INSTALLATION.md)** - Step-by-step installation
+- **[Configuration](./docs/CONFIGURATION.md)** - Configuration options
+- **[Polymorphic Relationships](./docs/POLYMORPHIC_RELATIONSHIPS.md)** - Usage guide
 
-1. **Revisar documentación completa** en orden:
-   - PRD → ARCHITECTURE → DATABASE_SCHEMA → USER_FLOWS → USE_CASES
+### Reference
+- **[Package Features](./docs/PACKAGE_FEATURES.md)** - Complete feature list
+- **[Database Schema](./docs/DATABASE_SCHEMA.md)** - Database structure
+- **[API & Webhooks](./docs/API_WEBHOOKS.md)** - API endpoints
+- **[3D Secure Integration](./docs/3DS_INTEGRATION.md)** - 3DS implementation
+- **[Architecture](./docs/ARCHITECTURE.md)** - System architecture
+- **[Use Cases](./docs/USE_CASES.md)** - Detailed use cases
+- **[User Flows](./docs/USER_FLOWS.md)** - Flow diagrams
 
-2. **Validar requerimientos** con stakeholders
-
-3. **Configurar ambientes:**
-   - Local: Laravel Homestead/Valet/Docker
-   - Sandbox Openpay para MX y CO
-   - Base de datos desarrollo
-
-4. **Iniciar FASE 1 (MVP):**
-   - Seguir checklist en [ROADMAP.md](./docs/ROADMAP.md)
-   - Sprints de 2 semanas
-   - Tests desde el inicio
-
-5. **Implementar base de datos:**
-   - Ejecutar [DATABASE_DDL.sql](./docs/DATABASE_DDL.sql)
-   - Crear seeders para planes iniciales
-   - Validar índices
-
-### Para Product Owners
-
-1. **Definir valores específicos:**
-   - Cantidad exacta de tokens por plan
-   - Precios finales en MXN y COP
-   - Días de trial por plan
-   - Beneficios de programa de referidos
-
-2. **Priorizar features** del roadmap según negocio
-
-3. **Configurar Openpay:**
-   - Cuentas MX y CO
-   - Credenciales sandbox y producción
-   - Configurar webhooks
-
-### Para DevOps/Infraestructura
-
-1. **Provisionar servidores VPS:**
-   - Recomendación: DigitalOcean Droplets
-   - Especificaciones mínimas: 4 CPU, 8GB RAM, 100GB SSD
-
-2. **Configurar servicios:**
-   - Nginx
-   - PHP 8.1+ con PHP-FPM
-   - MySQL 8.0
-   - Redis
-   - Supervisor (queue workers)
-
-3. **Implementar CI/CD**
-
-4. **Configurar monitoreo:**
-   - Sentry para error tracking
-   - Uptime monitoring
-   - Backups automatizados
+### Advanced
+- **[Extending the Package](./docs/EXTENDING.md)** - Customization guide
+- **[Recommendations](./docs/RECOMMENDATIONS.md)** - Best practices
 
 ---
 
-## 📊 Métricas de Éxito
+## 🎯 Quick Start
 
-### FASE 1 - MVP (3-4 meses)
-- ✅ Sistema en producción
-- ✅ > 100 usuarios activos
-- ✅ Tasa de conversión trial > 40%
-- ✅ Tasa de éxito de pagos > 95%
+### 1. Install via Composer
 
-### FASE 2 - Features Avanzados (2-3 meses)
-- ✅ > 500 usuarios activos
-- ✅ Cupones usados por > 20% nuevos usuarios
-- ✅ Churn rate < 5%
+```bash
+composer require cesarantolinez/laravel-subscription-manager
+```
 
-### FASE 3 - Escalabilidad (2-3 meses)
-- ✅ > 10,000 usuarios activos
-- ✅ Uptime > 99.5%
-- ✅ Tiempo respuesta < 500ms (p95)
+### 2. Publish Configuration & Migrations
 
----
+```bash
+php artisan vendor:publish --tag=subscription-config
+php artisan vendor:publish --tag=subscription-migrations
+php artisan migrate
+```
 
-## 🛡️ Cumplimiento Normativo
+### 3. Configure Environment
 
-### México
-- **Facturación:** CFDI vía PAC autorizado
-- **Protección de Datos:** Ley Federal de Protección de Datos Personales en Posesión de Particulares
-- **Aviso de Privacidad:** Obligatorio
+```env
+# .env
+SUBSCRIPTION_SUBSCRIBER_MODEL=App\\Models\\User
+PAYMENT_GATEWAY=openpay
+OPENPAY_MERCHANT_ID=your_merchant_id
+OPENPAY_PRIVATE_KEY=sk_your_private_key
+OPENPAY_PUBLIC_KEY=pk_your_public_key
+```
 
-### Colombia
-- **Facturación:** Sistema DIAN
-- **Protección de Datos:** Ley 1581 de 2012 (Habeas Data)
-- **Registro:** RNBD (Registro Nacional de Bases de Datos)
+### 4. Add Trait to Your Model
 
----
+```php
+use CesarAntolinez\LaravelSubscriptionManager\Traits\HasSubscription;
 
-## 📞 Soporte y Contacto
+class User extends Authenticatable
+{
+    use HasSubscription;
+}
+```
 
-**Documentación Técnica:** Esta carpeta `/docs`  
-**Issues y Tareas:** GitHub Issues  
-**Preguntas Técnicas:** Equipo de desarrollo
+### 5. Subscribe to a Plan
 
----
+```php
+$user = User::find(1);
+$plan = Plan::where('name', 'Professional Plan')->first();
 
-## 📝 Notas de Versión
+$subscription = $user->subscribeToPlan($plan);
 
-**Versión:** 1.0  
-**Fecha:** Enero 2026  
-**Estado:** Documentación completa lista para implementación  
-**Próxima Revisión:** Mensual durante desarrollo
-
----
-
-## 🔐 Licencia y Confidencialidad
-
-Este documento y toda la documentación asociada son **confidenciales** y propiedad exclusiva del proyecto.
-
-**Prohibido:**
-- Compartir fuera del equipo autorizado
-- Usar para otros proyectos sin autorización
-- Distribuir públicamente
+// Check status
+if ($user->hasActiveSubscription()) {
+    echo "Subscription active!";
+}
+```
 
 ---
 
-**Generado:** Enero 2026  
-**Mantenido por:** Equipo de Desarrollo
+## 💡 Core Concepts
+
+### Polymorphic Relationships
+
+Unlike traditional subscription packages, this one uses **polymorphic relationships** to work with any model:
+
+```php
+// User subscriptions
+class User extends Authenticatable {
+    use HasSubscription;
+}
+
+// Company subscriptions
+class Company extends Model {
+    use HasSubscription;
+}
+
+// Team subscriptions  
+class Team extends Model {
+    use HasSubscription;
+}
+```
+
+All work seamlessly:
+```php
+$user->subscribeToPlan($plan);
+$company->subscribeToPlan($plan);
+$team->subscribeToPlan($plan);
+```
+
+### Payment Gateway Abstraction
+
+Easy to switch between gateways or add custom ones:
+
+```php
+// config/subscription.php
+'payment_gateway' => env('PAYMENT_GATEWAY', 'openpay'),
+
+'gateways' => [
+    'openpay' => OpenpayGateway::class,
+    'stripe' => StripeGateway::class,
+    'custom' => MyCustomGateway::class,
+],
+```
+
+### Modular Features
+
+Enable only what you need:
+
+```php
+// config/subscription.php
+'features' => [
+    'tokens' => true,      // Consumption tracking
+    'referrals' => true,   // Referral system
+    'invoicing' => false,  // Electronic invoicing
+],
+```
+
+---
+
+## 📊 Database Schema
+
+### Core Tables (Always Included)
+- `plans` - Subscription plans
+- `subscriptions` - Subscriber subscriptions (polymorphic)
+- `payments` - Payment records with 3DS
+- `payment_retries` - Retry tracking
+- `grace_periods` - Grace period management
+- `billing_data` - Tax/billing information (polymorphic)
+- `coupons` - Discount coupons **[CORE]**
+- `subscriber_coupons` - Applied coupons (polymorphic) **[CORE]**
+- `notifications` - Notification log (polymorphic)
+- `audit_logs` - Audit trail (polymorphic)
+
+### Optional Tables (Separate Migrations)
+- `tokens_usage` - Token consumption (polymorphic) **[OPTIONAL]**
+- `referrals` - Referral system (polymorphic) **[OPTIONAL]**
+- `invoices` - Electronic invoicing (polymorphic) **[OPTIONAL]**
+
+### No User Table
+The package does **NOT** include a users table. It uses polymorphic relationships to work with your existing models.
+
+---
+
+## 🔐 Security Features
+
+### 3D Secure 2.0 Implementation
+
+- Strong Customer Authentication (SCA) compliance
+- PSD2 regulation compliance
+- Merchant-Initiated Transactions (MIT) after first payment
+- Reduced fraud and chargebacks
+
+### PCI Compliance
+
+- Card tokenization (no card storage)
+- Payment gateway handles sensitive data
+- Secure webhook verification
+- Encrypted billing data
+
+---
+
+## 🌍 Supported Payment Gateways
+
+| Gateway | Status | 3DS Support | Countries |
+|---------|--------|-------------|-----------|
+| **Openpay** | ✅ Full | ✅ Yes | MX, CO |
+| **Stripe** | 🔄 Coming Soon | ✅ Yes | Global |
+| **Mercadopago** | 🔄 Coming Soon | ✅ Yes | LATAM |
+
+---
+
+## 📧 Notification Types
+
+20+ transactional emails:
+- Welcome, payment success/failed, reminders
+- Trial expiring/expired
+- Grace period start/reminders
+- Subscription cancelled/reactivated
+- Plan changed (upgrade/downgrade)
+- Referral successful
+- Invoice available
+- Token usage alerts (50%, 75%, 90%, 100%)
+- **Payment authentication required (3DS)**
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run package tests
+composer test
+
+# Run with coverage
+composer test:coverage
+```
+
+---
+
+## 📦 Requirements
+
+- **PHP:** 8.1+
+- **Laravel:** 10.x or 11.x
+- **Database:** MySQL 8.0+ / PostgreSQL 13+ / MariaDB 10.5+
+- **Optional:** Redis (recommended for queues and cache)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
+
+## 📄 License
+
+This package is open-sourced software licensed under the [MIT license](LICENSE).
+
+---
+
+## 📞 Support
+
+- **Documentation:** [Full Documentation](./docs/)
+- **Issues:** [GitHub Issues](https://github.com/CesarAntolinez/laravel-subscription-manager/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/CesarAntolinez/laravel-subscription-manager/discussions)
+
+---
+
+## 🙏 Credits
+
+Created and maintained by [Cesar Antolinez](https://github.com/CesarAntolinez)
+
+---
+
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for recent changes.
+
+---
+
+**Version:** 2.0  
+**Last Updated:** January 2026
