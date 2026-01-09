@@ -1,764 +1,1223 @@
-# 🔄 Diagramas de Flujo de Usuario
-## Sistema de Planes y Suscripciones
+# Diagramas de Flujo de Usuario
+## Sistema de Suscripciones - Agenda Médica SaaS
+
+**Versión:** 1.1  
+**Fecha:** Enero 2026  
+**Actualización:** Integración 3D Secure (3DS)
 
 ---
 
 ## 📑 Tabla de Contenidos
 
-1. [Introducción](#introducción)
-2. [Flujo 1: Registro y Trial](#flujo-1-registro-y-trial)
-3. [Flujo 2: Pagos Recurrentes con Tarjeta](#flujo-2-pagos-recurrentes-con-tarjeta)
-4. [Flujo 3: Pagos Manuales con Transferencia](#flujo-3-pagos-manuales-con-transferencia)
-5. [Flujo 4: Upgrade de Plan](#flujo-4-upgrade-de-plan)
-6. [Flujo 5: Downgrade de Plan](#flujo-5-downgrade-de-plan)
-7. [Flujo 6: Sistema de Referidos](#flujo-6-sistema-de-referidos)
-8. [Flujo 7: Aplicación de Cupón](#flujo-7-aplicación-de-cupón)
-9. [Flujo 8: Solicitud de Factura](#flujo-8-solicitud-de-factura)
+1. [Flujo 1: Registro y Trial con 3DS](#flujo-1-registro-y-trial-con-3ds)
+2. [Flujo 2: Renovación Automática con MIT/3DS](#flujo-2-renovación-automática-con-mit3ds)
+3. [Flujo 3: Pagos Manuales (Transferencia)](#flujo-3-pagos-manuales-transferencia)
+4. [Flujo 4: Upgrade de Plan con 3DS](#flujo-4-upgrade-de-plan-con-3ds)
+5. [Flujo 5: Downgrade de Plan](#flujo-5-downgrade-de-plan)
+6. [Flujo 6: Sistema de Referidos](#flujo-6-sistema-de-referidos)
+7. [Flujo 7: Aplicación de Cupón](#flujo-7-aplicación-de-cupón)
+8. [Flujo 8: Solicitud de Factura](#flujo-8-solicitud-de-factura)
+9. [🆕 Flujo 9: Autenticación de Pago Pendiente (3DS)](#flujo-9-autenticación-de-pago-pendiente-3ds)
 
 ---
 
-## Introducción
+## Flujo 1: Registro y Trial con 3DS
 
-Este documento presenta los flujos de usuario principales del sistema de suscripciones. Cada diagrama ilustra el recorrido completo del usuario a través de procesos clave, incluyendo decisiones, validaciones y resultados.
+**Objetivo:** Usuario nuevo se registra, agrega tarjeta con autenticación 3DS y activa su trial.
 
-**Convenciones:**
-- 🟢 **Verde:** Flujos exitosos
-- 🔴 **Rojo:** Flujos de error o rechazo
-- 🟡 **Amarillo:** Procesos en espera o validación
-- 💎 **Rombo:** Puntos de decisión
-- 📦 **Rectángulo:** Procesos o acciones
-- ⭕ **Círculo:** Inicio/Fin
+**Actores:** Usuario nuevo, Sistema, Openpay, Banco Emisor
 
----
-
-## Flujo 1: Registro y Trial
-
-**Descripción:** Proceso completo desde que un nuevo usuario se registra hasta la conversión del trial en suscripción de pago.
+**⚠️ Cambios vs versión anterior:** Agregado proceso completo de autenticación 3D Secure obligatorio.
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario Nuevo]) --> ViewPlans[Ver Planes Disponibles]
-    ViewPlans --> SelectPlan[Seleccionar Plan]
-    SelectPlan --> Register[Completar Registro]
-    Register --> FiscalData[Ingresar Datos Fiscales]
+    Start([Usuario visita sitio]) --> ViewPlans[Ver planes disponibles]
+    ViewPlans --> ComparePlans{Compara características}
+    ComparePlans --> SelectPlan[Selecciona plan y periodicidad]
     
-    FiscalData --> ValidateFiscal{¿Datos Fiscales Válidos?}
-    ValidateFiscal -->|No| FiscalDataError[Mostrar Errores]
-    FiscalDataError --> FiscalData
-    ValidateFiscal -->|Sí| AddCard[Agregar Tarjeta]
+    SelectPlan --> RegisterForm[Completa formulario registro]
+    RegisterForm --> FillData[Nombre, email, contraseña, rol]
+    FillData --> VerifyEmail[Verifica email]
     
-    AddCard --> TokenizeCard[Tokenizar en Openpay]
-    TokenizeCard --> ValidateCard{¿Tarjeta Válida?}
-    ValidateCard -->|No| CardError[Error: Tarjeta Rechazada]
-    CardError --> AddCard
+    VerifyEmail --> BillingData[Ingresa datos fiscales]
+    BillingData --> ValidateBilling{¿Datos válidos?}
+    ValidateBilling -->|No| BillingData
+    ValidateBilling -->|Sí| AddCardForm[Formulario agregar tarjeta]
     
-    ValidateCard -->|Sí| CreateSubscription[Crear Suscripción en Trial]
-    CreateSubscription --> AssignTokens[Asignar Tokens del Plan]
-    AssignTokens --> SendWelcome[Enviar Email de Bienvenida]
-    SendWelcome --> TrialActive[✅ Trial Activo]
+    AddCardForm --> EnterCard[Ingresa número, CVV, fecha]
+    EnterCard --> TokenizeCard[Sistema tokeniza con Openpay. js]
     
-    TrialActive --> UseService[Usuario Consume Tokens]
-    UseService --> CheckTokens{¿Consumo de Tokens?}
+    TokenizeCard --> InitCharge[Inicia cargo $0-1 validación]
+    InitCharge --> OpenpayRequest[Envía a Openpay con 3DS=true]
     
-    CheckTokens -->|50%| Alert50[📧 Alerta 50%]
-    CheckTokens -->|75%| Alert75[📧 Alerta 75%]
-    CheckTokens -->|90%| Alert90[📧 Alerta 90%]
-    CheckTokens -->|100%| Alert100[📧 Alerta 100%]
+    OpenpayRequest --> OpenpayCheck{Openpay verifica con banco}
     
-    Alert50 --> ContinueTrial
-    Alert75 --> ContinueTrial
-    Alert90 --> ContinueTrial
-    Alert100 --> ContinueTrial[Continuar en Trial]
+    OpenpayCheck -->|Requiere 3DS| Show3DSModal[🔒 Muestra modal/iframe 3DS]
+    OpenpayCheck -->|No requiere raro| DirectSuccess[Tarjeta validada]
     
-    ContinueTrial --> CheckTrialDays{¿Días Restantes?}
-    CheckTrialDays -->|> 3 días| UseService
-    CheckTrialDays -->|= 3 días| Send3DayReminder[📧 Trial Vence en 3 Días]
-    Send3DayReminder --> WaitExpiration
+    Show3DSModal --> DisplayBank[Carga página del banco]
+    DisplayBank --> BankLoaded{¿Página carga OK?}
     
-    CheckTrialDays -->|= 0 días| SendTrialExpired[📧 Trial Vencido]
-    SendTrialExpired --> WaitExpiration[Esperar Vencimiento]
+    BankLoaded -->|Sí| UserSees[Usuario ve opciones autenticación]
+    BankLoaded -->|No - Timeout| Error3DSLoad[Error:  No se pudo cargar 3DS]
     
-    WaitExpiration --> TrialExpired{¿Trial Vencido?}
-    TrialExpired -->|Usuario Canceló| Cancelled([❌ Cancelado])
-    TrialExpired -->|Sí, Cobrar| AutoCharge[Cobro Automático]
+    UserSees --> AuthOptions[SMS / App Bancaria / Biometría]
+    AuthOptions --> UserAuth{Usuario autentica}
     
-    AutoCharge --> ChargeSuccess{¿Cobro Exitoso?}
-    ChargeSuccess -->|Sí| ActivateSubscription[Activar Suscripción Pagada]
-    ActivateSubscription --> ResetTokens[Resetear Tokens Mensuales]
-    ResetTokens --> SendConfirmation[📧 Confirmación de Pago]
-    SendConfirmation --> ActiveSub([✅ Suscripción Activa])
+    UserAuth -->|✅ Éxito| BankConfirm[Banco confirma identidad]
+    UserAuth -->|❌ Fallo| AuthFailed[Autenticación fallida]
+    UserAuth -->|⏱️ Abandona| AuthAbandoned[Usuario abandona proceso]
+    UserAuth -->|⏱️ Timeout 15min| AuthTimeout[Timeout de autenticación]
     
-    ChargeSuccess -->|No| StartRetries[Iniciar Proceso de Reintentos]
-    StartRetries --> RetryFlow([Ver Flujo 2: Reintentos])
+    BankConfirm --> WebhookSuccess[Webhook:  charge.succeeded]
+    WebhookSuccess --> DirectSuccess
     
-    style Start fill:#e1f5e1
-    style TrialActive fill:#fff9e6
-    style ActiveSub fill:#e1f5e1
-    style Cancelled fill:#ffe6e6
-    style Alert50 fill:#fff9e6
-    style Alert75 fill:#ffe6cc
-    style Alert90 fill:#ffcccc
-    style Alert100 fill:#ff9999
+    AuthFailed --> ErrorAuth[Error:  Autenticación fallida]
+    AuthAbandoned --> ErrorAuth
+    AuthTimeout --> ErrorAuth
+    Error3DSLoad --> ErrorAuth
+    
+    ErrorAuth --> ShowErrorMsg[Mostrar mensaje error claro]
+    ShowErrorMsg --> RetryOption{¿Usuario quiere reintentar?}
+    
+    RetryOption -->|Sí, misma tarjeta| InitCharge
+    RetryOption -->|Sí, otra tarjeta| AddCardForm
+    RetryOption -->|No| CancelReg[Cancelar registro]
+    
+    DirectSuccess --> SaveCardToken[Guardar token tarjeta]
+    SaveCardToken --> CreateSubscription[Crear suscripción en trial]
+    CreateSubscription --> AssignTokens[Asignar tokens del plan]
+    AssignTokens --> WelcomeEmail[📧 Email bienvenida]
+    
+    WelcomeEmail --> ShowDashboard[Mostrar dashboard usuario]
+    ShowDashboard --> TrialActive[✅ Trial activo]
+    
+    TrialActive --> End([Fin - Usuario puede usar plataforma])
+    CancelReg --> EndCancel([Fin - Registro no completado])
+    
+    style Show3DSModal fill:#ff6b6b
+    style BankConfirm fill:#51cf66
+    style AuthFailed fill:#ff6b6b
+    style TrialActive fill:#51cf66
 ```
+
+**Puntos clave:**
+- ✅ **3DS es obligatorio** en el primer pago
+- ✅ Usuario ve **modal/iframe** (no redirect completo - mejor UX)
+- ✅ Múltiples métodos de autenticación (SMS, app, biometría)
+- ✅ Timeout de **15 minutos**
+- ✅ Opciones de reintento claras
+- ✅ Mensajes tranquilizadores ("Es por tu seguridad")
+
+**Estados del pago durante el flujo:**
+1. `pending` → Pago creado
+2. `processing` → Enviado a Openpay
+3. `requires_3ds` → Esperando autenticación usuario
+4. `authenticating` → Usuario en modal del banco
+5. `authenticated` → Autenticación exitosa
+6. `completed` → Pago completado, trial activo
+
+**Tiempo estimado:**
+- Sin problemas: **3-5 minutos**
+- Con reintento: **5-8 minutos**
 
 ---
 
-## Flujo 2: Pagos Recurrentes con Tarjeta
+## Flujo 2: Renovación Automática con MIT/3DS
 
-**Descripción:** Proceso de renovación automática de suscripción, manejo de fallos y período de gracia.
+**Objetivo:** Renovar suscripción automáticamente, usando MIT cuando sea posible, o solicitando autenticación 3DS si el banco lo requiere.
+
+**Actores:** CronJob, Sistema, Openpay, Banco Emisor, Usuario
+
+**⚠️ Cambios vs versión anterior:** Agregado manejo de MIT (exención 3DS) y flujo alternativo si se requiere autenticación.
 
 ```mermaid
 flowchart TD
-    Start([⏰ Fecha de Renovación]) --> AttemptCharge[Intentar Cobro Automático]
+    Start([CronJob diario:  Procesar renovaciones]) --> GetSubs[Obtener suscripciones a renovar hoy]
     
-    AttemptCharge --> ChargeResult{¿Resultado?}
+    GetSubs --> ForEach{Por cada suscripción}
+    ForEach -->|Siguiente| CheckActive{¿Suscripción activa?}
+    ForEach -->|Fin| EndCron([Fin CronJob])
     
-    ChargeResult -->|✅ Exitoso| RenewSubscription[Renovar Suscripción]
-    RenewSubscription --> ResetTokens[Resetear Tokens Mensuales]
-    ResetTokens --> SendConfirmation[📧 Email Confirmación]
-    SendConfirmation --> CreateInvoiceReq[Crear Solicitud de Factura]
-    CreateInvoiceReq --> UpdateBilling[Actualizar Next Billing Date]
-    UpdateBilling --> Success([✅ Renovación Exitosa])
+    CheckActive -->|No| ForEach
+    CheckActive -->|Sí| CheckCard{¿Tiene tarjeta guardada?}
     
-    ChargeResult -->|❌ Fallido| RecordFailure[Registrar Fallo]
-    RecordFailure --> SendFailureEmail[📧 Email Fallo de Pago]
-    SendFailureEmail --> Retry1{¿Reintento 1?}
+    CheckCard -->|No| ManualPayment[Generar orden pago manual]
+    CheckCard -->|Sí| CreatePayment[Crear registro Payment]
     
-    Retry1 -->|Sí| Wait3Days[Esperar 3 Días]
-    Wait3Days --> AttemptRetry1[Reintento Automático #1]
-    AttemptRetry1 --> Retry1Result{¿Resultado?}
+    ManualPayment --> EmailManual[📧 Email:  Orden de pago]
+    EmailManual --> ForEach
     
-    Retry1Result -->|✅ Exitoso| RenewSubscription
-    Retry1Result -->|❌ Fallido| LogRetry1[Registrar Reintento #1]
-    LogRetry1 --> SendRetry1Fail[📧 Fallo Reintento #1]
-    SendRetry1Fail --> Wait7Days[Esperar 7 Días]
+    CreatePayment --> InitCharge[Iniciar cargo recurrente]
+    InitCharge --> OpenpayMIT[Solicitar a Openpay con MIT=true]
     
-    Wait7Days --> AttemptRetry2[Reintento Automático #2]
-    AttemptRetry2 --> Retry2Result{¿Resultado?}
+    OpenpayMIT --> OpenpayResponse{Respuesta Openpay}
     
-    Retry2Result -->|✅ Exitoso| RenewSubscription
-    Retry2Result -->|❌ Fallido| LogRetry2[Registrar Reintento #2]
-    LogRetry2 --> SendRetry2Fail[📧 Fallo Reintento #2]
-    SendRetry2Fail --> Wait10Days[Esperar 10 Días]
+    OpenpayResponse -->|✅ Éxito - MIT aceptado| ChargeSuccess[Pago completado sin 3DS]
+    OpenpayResponse -->|🔒 Requiere 3DS| BankRequires3DS[Banco solicita autenticación]
+    OpenpayResponse -->|❌ Fallo - Fondos| ChargeFailed[Fallo:  Fondos insuficientes]
+    OpenpayResponse -->|❌ Fallo - Tarjeta| ChargeFailedCard[Fallo: Tarjeta expirada/inválida]
+    OpenpayResponse -->|❌ Fallo - Técnico| ChargeFailedTech[Fallo técnico]
     
-    Wait10Days --> AttemptRetry3[Reintento Automático #3]
-    AttemptRetry3 --> Retry3Result{¿Resultado?}
+    ChargeSuccess --> UpdatePayment[Actualizar payment:  completed]
+    UpdatePayment --> RenewSub[Renovar suscripción]
+    RenewSub --> ResetTokens[Resetear tokens al plan]
+    ResetTokens --> EmailSuccess[📧 Email: Pago exitoso]
+    EmailSuccess --> MarkInvoice[Marcar para facturación]
+    MarkInvoice --> ForEach
     
-    Retry3Result -->|✅ Exitoso| RenewSubscription
-    Retry3Result -->|❌ Fallido| LogRetry3[Registrar Reintento #3]
-    LogRetry3 --> AllRetriesFailed[3 Reintentos Fallidos]
+    BankRequires3DS --> MarkRequires3DS[Marcar payment:  requires_3ds]
+    MarkRequires3DS --> SaveRedirectURL[Guardar URL autenticación]
+    SaveRedirectURL --> EmailAuthRequired[📧 Email #20: Acción requerida - Autentica tu pago]
     
-    AllRetriesFailed --> StartGracePeriod[Iniciar Período de Gracia]
-    StartGracePeriod --> SetGraceEnd[Establecer Fin: +2 Meses]
-    SetGraceEnd --> SendGraceStart[📧 Entrada a Período de Gracia]
-    SendGraceStart --> FullAccessGrace[✅ Acceso Completo Mantenido]
+    EmailAuthRequired --> WaitUser{Usuario actúa en 24h? }
     
-    FullAccessGrace --> GraceLoop{¿En Período Gracia?}
-    GraceLoop -->|Cada 15 días| SendReminder[📧 Recordatorio de Pago]
-    SendReminder --> AccumulateDebt[Acumular Deuda]
-    AccumulateDebt --> CheckPayment{¿Usuario Pagó?}
+    WaitUser -->|Sí - Hace clic| UserLogin[Usuario ingresa a plataforma]
+    WaitUser -->|No| Timeout24h[Timeout 24h sin acción]
     
-    CheckPayment -->|Sí| ProcessPayment[Procesar Pago]
-    ProcessPayment --> ClearDebt[Limpiar Deuda]
-    ClearDebt --> ExitGrace[Salir de Período Gracia]
-    ExitGrace --> ReactivateNormal[Reactivar Normal]
-    ReactivateNormal --> SendReactivation[📧 Reactivación Exitosa]
-    SendReactivation --> Reactivated([✅ Reactivado])
+    UserLogin --> ShowAuthPage[Mostrar página autenticación]
+    ShowAuthPage --> ExplainWhy[Explicar por qué necesita autenticar]
+    ExplainWhy --> ButtonAuth[Botón: Autenticar mi pago]
     
-    CheckPayment -->|No| ContinueGrace[Continuar en Gracia]
-    ContinueGrace --> GraceExpired{¿Gracia Vencida?}
+    ButtonAuth --> Open3DSModal[Abrir modal 3DS]
+    Open3DSModal --> BankAuth[Usuario autentica con banco]
     
-    GraceExpired -->|No| GraceLoop
-    GraceExpired -->|Sí, 2 Meses| BlockAccount[Bloquear Cuenta]
-    BlockAccount --> FinalDebt[Deuda Acumulada Final]
-    FinalDebt --> SendBlockNotice[📧 Cuenta Bloqueada]
-    SendBlockNotice --> LimitedAccess[Acceso Limitado - Solo Lectura]
-    LimitedAccess --> ShowDebt[Mostrar Deuda y Opción Pago]
-    ShowDebt --> Blocked([🚫 Bloqueado con Deuda])
+    BankAuth -->|✅ Éxito| Webhook3DSSuccess[Webhook: charge.succeeded]
+    BankAuth -->|❌ Fallo| Auth3DSFailed[Autenticación fallida]
+    BankAuth -->|⏱️ Timeout| Auth3DSTimeout[Timeout 15 min]
     
-    Blocked --> UserPaysDebt{¿Paga Deuda?}
-    UserPaysDebt -->|Sí| ProcessPayment
-    UserPaysDebt -->|No| StayBlocked[Permanece Bloqueado]
-    StayBlocked --> Blocked
+    Webhook3DSSuccess --> ChargeSuccess
     
-    style Success fill:#e1f5e1
-    style Reactivated fill:#e1f5e1
-    style Blocked fill:#ffe6e6
-    style FullAccessGrace fill:#fff9e6
-    style SendReminder fill:#ffe6cc
+    Auth3DSFailed --> Timeout24h
+    Auth3DSTimeout --> Timeout24h
+    
+    Timeout24h --> CountAttempt[Contar como fallo intento 1]
+    CountAttempt --> ChargeFailed
+    
+    ChargeFailed --> SaveRetry[Guardar en payment_retries]
+    ChargeFailedCard --> SaveRetry
+    ChargeFailedTech --> SaveRetry
+    
+    SaveRetry --> CheckAttempts{¿Intentos < 3?}
+    
+    CheckAttempts -->|Sí| ScheduleRetry[Programar reintento]
+    CheckAttempts -->|No| EnterGrace[Entrar período de gracia]
+    
+    ScheduleRetry --> CalcRetryDate[Calcular fecha reintento]
+    CalcRetryDate --> Retry1{¿Intento? }
+    
+    Retry1 -->|1| Schedule3Days[+3 días]
+    Retry1 -->|2| Schedule5Days[+5 días]
+    
+    Schedule3Days --> EmailRetry[📧 Email:  Reintento programado]
+    Schedule5Days --> EmailRetry
+    EmailRetry --> ForEach
+    
+    EnterGrace --> CreateGracePeriod[Crear grace_period:  2 meses]
+    CreateGracePeriod --> EmailGrace[📧 Email:  Período de gracia]
+    EmailGrace --> ScheduleReminders[Programar recordatorios cada 15 días]
+    ScheduleReminders --> ForEach
+    
+    style OpenpayMIT fill:#4dabf7
+    style ChargeSuccess fill:#51cf66
+    style BankRequires3DS fill:#ff6b6b
+    style EmailAuthRequired fill:#ffd43b
+    style Webhook3DSSuccess fill:#51cf66
+    style EnterGrace fill:#ff8787
 ```
+
+**Decisiones clave del flujo:**
+
+**1. ¿Cuándo usar MIT?**
+- Siempre en renovaciones automáticas
+- Solo funciona si primer pago tuvo 3DS exitoso
+- El banco puede rechazarlo de todos modos
+
+**2. ¿Qué pasa si el banco requiere 3DS en renovación?**
+- Sistema NO puede procesar automáticamente (usuario no está presente)
+- Se envía email urgente al usuario
+- Usuario tiene 24h para actuar
+- Si no actúa, cuenta como fallo → reintentos
+
+**3. Tipos de fallo:**
+- **Requiere 3DS:** Email especial, 24h para autenticar
+- **Fondos/Tarjeta:** Reintentos automáticos
+- **Técnico:** Reintentos automáticos
+
+**Métricas a monitorear:**
+- % de renovaciones con MIT exitoso (objetivo: >70%)
+- % de renovaciones que requieren 3DS (baseline para detectar cambios)
+- Tasa de respuesta a email #20 en 24h (objetivo: >60%)
+- % de usuarios que completan autenticación solicitada (objetivo: >80%)
 
 ---
 
-## Flujo 3: Pagos Manuales con Transferencia
+## Flujo 3: Pagos Manuales (Transferencia)
 
-**Descripción:** Proceso para usuarios que prefieren pagar mediante transferencia bancaria.
+**Objetivo:** Usuario sin tarjeta (o que prefiere no agregar) puede pagar con transferencia bancaria.
+
+**Actores:** Usuario, Sistema, Banco
+
+**✅ Sin cambios:** Este flujo NO requiere 3DS porque no usa tarjeta.
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario sin Tarjeta]) --> ChooseManual[Seleccionar Pago Manual]
-    ChooseManual --> SelectPlan[Elegir Plan y Periodicidad]
-    SelectPlan --> GenerateOrder[Generar Orden de Pago]
+    Start([Usuario selecciona plan]) --> CheckMethod{¿Método de pago?}
     
-    GenerateOrder --> CreateOrderRecord[Crear Registro en BD]
-    CreateOrderRecord --> SendInstructions[📧 Email con Instrucciones]
-    SendInstructions --> ShowBankData[Mostrar Datos Bancarios]
-    ShowBankData --> OrderPending[Orden Pendiente]
+    CheckMethod -->|Tarjeta| CardFlow[Ver Flujo 1/2]
+    CheckMethod -->|Transferencia| SelectTransfer[Selecciona transferencia]
     
-    OrderPending --> UserTransfers{¿Usuario Realiza Transferencia?}
+    SelectTransfer --> ConfirmPlan[Confirmar plan y monto]
+    ConfirmPlan --> GenerateOrder[Sistema genera orden de pago]
     
-    UserTransfers -->|No| WaitTimeout[Esperar Timeout]
-    WaitTimeout --> OrderExpired{¿Orden Vencida?}
-    OrderExpired -->|Sí| CancelOrder([❌ Orden Cancelada])
-    OrderExpired -->|No| OrderPending
+    GenerateOrder --> CreateRef[Crear referencia única]
+    CreateRef --> CalcDue[Calcular fecha límite]
+    CalcDue --> SaveOrder[Guardar en payments:  status=pending]
     
-    UserTransfers -->|Sí| UserUploadsProof[Usuario Sube Comprobante]
-    UserUploadsProof --> AdminNotified[🔔 Notificar Admin]
-    AdminNotified --> AdminReviews{Admin Revisa}
+    SaveOrder --> EmailInstructions[📧 Email:  Instrucciones de pago]
     
-    AdminReviews -->|Rechazar| SendRejection[📧 Pago Rechazado]
-    SendRejection --> ExplainReason[Explicar Razón]
-    ExplainReason --> RetryUpload{¿Usuario Reintenta?}
-    RetryUpload -->|Sí| UserUploadsProof
-    RetryUpload -->|No| CancelOrder
+    EmailInstructions --> ShowDetails[Mostrar en email:]
+    ShowDetails --> Detail1[• Referencia única]
+    Detail1 --> Detail2[• Monto exacto]
+    Detail2 --> Detail3[• Datos bancarios según país]
+    Detail3 --> Detail4[• Fecha límite]
+    Detail4 --> Detail5[• Instrucciones paso a paso]
     
-    AdminReviews -->|Aprobar| ConfirmPayment[Admin Confirma Pago]
-    ConfirmPayment --> CreatePaymentRecord[Crear Registro de Pago]
-    CreatePaymentRecord --> ActivateSubscription[Activar/Renovar Suscripción]
-    ActivateSubscription --> AssignTokens[Asignar Tokens]
-    AssignTokens --> SendConfirmation[📧 Confirmación de Activación]
-    SendConfirmation --> OfferCard[Ofrecer Agregar Tarjeta]
+    Detail5 --> UserReceives[Usuario recibe email]
+    UserReceives --> UserDecision{Usuario decide}
     
-    OfferCard --> UserDecision{¿Usuario Agrega Tarjeta?}
-    UserDecision -->|Sí| AddCard[Agregar Tarjeta]
-    AddCard --> TokenizeCard[Tokenizar en Openpay]
-    TokenizeCard --> UpdateSubscription[Actualizar Suscripción]
-    UpdateSubscription --> AutoRenewal[✅ Auto-renovación Activada]
-    AutoRenewal --> ActiveWithCard([✅ Activo con Tarjeta])
+    UserDecision -->|Paga en banco/app| UserTransfers[Realiza transferencia]
+    UserDecision -->|No paga| Timeout{¿Pasó fecha límite?}
     
-    UserDecision -->|No| ManualRenewalNext[Siguiente Renovación Manual]
-    ManualRenewalNext --> ActiveManual([✅ Activo - Pago Manual])
+    UserTransfers --> BankProcesses[Banco procesa transferencia]
     
-    ActiveManual --> NextRenewal[Próxima Renovación]
-    NextRenewal --> GenerateOrder
+    BankProcesses --> DetectionMethod{¿Cómo se detecta?}
     
-    style ActiveWithCard fill:#e1f5e1
-    style ActiveManual fill:#fff9e6
-    style CancelOrder fill:#ffe6e6
-    style AdminNotified fill:#e6f3ff
+    DetectionMethod -->|Automático - Webhook| WebhookReceived[Webhook bancario]
+    DetectionMethod -->|Manual - Admin| AdminChecks[Admin verifica en banco]
+    
+    WebhookReceived --> ValidateRef[Validar referencia]
+    AdminChecks --> ValidateRef
+    
+    ValidateRef --> RefMatch{¿Referencia coincide?}
+    
+    RefMatch -->|Sí| UpdatePayment[Actualizar payment:  completed]
+    RefMatch -->|No| ManualReview[Revisión manual]
+    
+    ManualReview --> AdminAction{Admin decide}
+    AdminAction -->|Válido| UpdatePayment
+    AdminAction -->|Inválido| ContactUser[Contactar usuario]
+    
+    UpdatePayment --> ActivateSub[Activar/renovar suscripción]
+    ActivateSub --> AssignTokens[Asignar tokens]
+    AssignTokens --> EmailConfirm[📧 Email:  Pago confirmado]
+    EmailConfirm --> MarkInvoice[Marcar para factura]
+    MarkInvoice --> End([Fin - Suscripción activa])
+    
+    Timeout -->|Sí| ExpireOrder[Expirar orden de pago]
+    ExpireOrder --> EmailExpired[📧 Email:  Orden expirada]
+    EmailExpired --> OfferNew{¿Generar nueva orden?}
+    OfferNew -->|Sí| GenerateOrder
+    OfferNew -->|No| EndExpired([Fin - Orden expirada])
+    
+    ContactUser --> EndContact([Fin - Pendiente resolución])
+    
+    style UserTransfers fill:#4dabf7
+    style UpdatePayment fill:#51cf66
+    style ExpireOrder fill:#ff8787
 ```
+
+**Datos bancarios según país:**
+
+**México (SPEI):**
+- CLABE interbancaria
+- Beneficiario: Nombre empresa
+- Banco: Nombre del banco
+- Referencia: REF-XXXX-XXXX
+
+**Colombia:**
+- Número de cuenta
+- Tipo de cuenta (Ahorros/Corriente)
+- Banco: Nombre del banco
+- NIT beneficiario
+- Referencia:  REF-XXXX-XXXX
+
+**Fecha límite:**
+- Trial: 24 horas
+- Renovación: 3 días
+- Pago único: 7 días
+
+**Ventajas para usuario:**
+- No requiere tarjeta
+- No requiere 3DS
+- Mayor control del pago
+
+**Desventajas:**
+- Proceso manual
+- Puede tardar 24-48h en confirmarse
+- Usuario debe pagar cada mes (no automático)
 
 ---
 
-## Flujo 4: Upgrade de Plan
+## Flujo 4: Upgrade de Plan con 3DS
 
-**Descripción:** Cambio inmediato a un plan superior con cálculo de prorrata.
+**Objetivo:** Usuario quiere subir de plan inmediatamente para obtener más tokens.
+
+**Actores:** Usuario, Sistema, Openpay, Banco Emisor
+
+**⚠️ Cambios vs versión anterior:** Agregado manejo de 3DS si el banco lo solicita durante el upgrade.
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario Activo]) --> ViewUpgrade[Ver Planes Superiores]
-    ViewUpgrade --> SelectNewPlan[Seleccionar Nuevo Plan]
-    SelectNewPlan --> CalculateProrata[Calcular Prorrata]
+    Start([Usuario ve opciones de plan]) --> CurrentPlan[Está en plan actual]
+    CurrentPlan --> SeeHigher[Ve plan superior disponible]
+    SeeHigher --> CompareFeatures[Compara características]
     
-    CalculateProrata --> GetCurrentPlan[Obtener Plan Actual]
-    GetCurrentPlan --> GetDaysRemaining[Calcular Días Restantes]
-    GetDaysRemaining --> CalculateCredit[Crédito = Días/Total × Precio]
-    CalculateCredit --> GetNewPlanPrice[Obtener Precio Nuevo Plan]
-    GetNewPlanPrice --> CalculateCharge[Cargo = Nuevo Precio - Crédito]
+    CompareFeatures --> ClickUpgrade[Click:  Upgrade a plan superior]
     
-    CalculateCharge --> ShowSummary[Mostrar Resumen]
-    ShowSummary --> DisplayCredit[Crédito por Días Restantes]
-    DisplayCredit --> DisplayCharge[Cargo Inmediato]
-    DisplayCharge --> DisplayNextCharge[Próximo Cargo Completo]
-    DisplayNextCharge --> DisplayTokens[Tokens del Nuevo Plan]
+    ClickUpgrade --> ShowCalc[Mostrar cálculo prorrata]
+    ShowCalc --> Display1[Días restantes: X]
+    Display1 --> Display2[Diferencia precio:  $Y]
+    Display2 --> Display3[Cargo hoy: $Z prorrata]
+    Display3 --> Display4[Próximo cobro: $Precio completo]
+    Display4 --> Display5[Tokens nuevos:  Cantidad]
     
-    DisplayTokens --> UserConfirms{¿Usuario Confirma?}
+    Display5 --> ConfirmUpgrade{Usuario confirma? }
     
-    UserConfirms -->|No| UpgradeCancelled([❌ Upgrade Cancelado])
+    ConfirmUpgrade -->|No| Cancel([Cancelar])
+    ConfirmUpgrade -->|Sí| CheckCard{¿Tiene tarjeta guardada?}
     
-    UserConfirms -->|Sí| ProcessCharge[Procesar Cargo Prorrateado]
-    ProcessCharge --> ChargeResult{¿Cargo Exitoso?}
+    CheckCard -->|No| AddCard[Agregar tarjeta con 3DS]
+    CheckCard -->|Sí| InitCharge[Iniciar cargo prorrata]
     
-    ChargeResult -->|No| PaymentFailed[Error de Pago]
-    PaymentFailed --> ShowError[Mostrar Error]
-    ShowError --> RetryPayment{¿Reintentar?}
-    RetryPayment -->|Sí| ProcessCharge
-    RetryPayment -->|No| UpgradeCancelled
+    AddCard --> AddCardFlow[Ver Flujo 1: Agregar tarjeta]
+    AddCardFlow --> InitCharge
     
-    ChargeResult -->|Sí| UpdateSubscription[Actualizar Suscripción]
-    UpdateSubscription --> ChangePlan[Cambiar a Nuevo Plan]
-    ChangePlan --> ResetTokensImmediate[Resetear Tokens INMEDIATAMENTE]
-    ResetTokensImmediate --> AssignNewTokens[Asignar Tokens Nuevo Plan]
-    AssignNewTokens --> UpdateBillingDate[Actualizar Next Billing Date]
-    UpdateBillingDate --> CreatePaymentRecord[Crear Registro de Pago]
-    CreatePaymentRecord --> SendConfirmation[📧 Confirmación Upgrade]
-    SendConfirmation --> LogChange[Registrar en Audit Log]
-    LogChange --> UpgradeComplete([✅ Upgrade Completado])
+    InitCharge --> CreatePayment[Crear payment: upgrade]
+    CreatePayment --> OpenpayCharge[Solicitar cargo a Openpay]
     
-    UpgradeComplete --> NextBilling[Próxima Renovación]
-    NextBilling --> FullPriceCharge[Cobro Precio Completo]
-    FullPriceCharge --> NormalRenewal([🔄 Ciclo Normal])
+    OpenpayCharge --> OpenpayCheck{Openpay verifica}
     
-    style UpgradeComplete fill:#e1f5e1
-    style UpgradeCancelled fill:#ffe6e6
-    style ResetTokensImmediate fill:#ffe6cc
+    OpenpayCheck -->|✅ Aprobado sin 3DS| ChargeSuccess[Cargo exitoso]
+    OpenpayCheck -->|🔒 Requiere 3DS| Show3DS[Mostrar modal 3DS]
+    OpenpayCheck -->|❌ Fallo| ChargeFailed[Cargo fallido]
+    
+    Show3DS --> UserInModal[Usuario ve página banco]
+    UserInModal --> AuthProcess{Usuario autentica}
+    
+    AuthProcess -->|✅ Éxito| WebhookSuccess[Webhook: charge.succeeded]
+    AuthProcess -->|❌ Fallo/Timeout| AuthFailed[Autenticación fallida]
+    
+    WebhookSuccess --> ChargeSuccess
+    
+    ChargeSuccess --> UpdateSub[Actualizar suscripción a nuevo plan]
+    UpdateSub --> ResetTokens[Resetear tokens:  0 usados / Total nuevo plan]
+    ResetTokens --> RecalcBilling[Recalcular próxima fecha cobro]
+    RecalcBilling --> EmailConfirm[📧 Email:  Upgrade exitoso]
+    
+    EmailConfirm --> ShowNewDash[Mostrar dashboard con nuevo plan]
+    ShowNewDash --> HighlightTokens[Destacar tokens nuevos disponibles]
+    HighlightTokens --> End([Fin - Upgrade completado])
+    
+    ChargeFailed --> CheckReason{¿Razón del fallo?}
+    AuthFailed --> CheckReason
+    
+    CheckReason -->|Fondos| ErrorFunds[Error: Fondos insuficientes]
+    CheckReason -->|Tarjeta| ErrorCard[Error: Tarjeta inválida]
+    CheckReason -->|3DS| Error3DS[Error:  Autenticación fallida]
+    
+    ErrorFunds --> OfferOptions[Ofrecer opciones:]
+    ErrorCard --> OfferOptions
+    Error3DS --> OfferOptions
+    
+    OfferOptions --> Option1[• Reintentar]
+    Option1 --> Option2[• Actualizar tarjeta]
+    Option2 --> Option3[• Pagar con transferencia]
+    
+    Option3 --> UserChoice{Usuario elige}
+    
+    UserChoice -->|Reintentar| InitCharge
+    UserChoice -->|Actualizar| AddCard
+    UserChoice -->|Transferencia| ManualUpgrade[Upgrade manual con transferencia]
+    UserChoice -->|Cancelar| Cancel
+    
+    ManualUpgrade --> EndManual([Fin - Pendiente pago manual])
+    
+    style Show3DS fill:#ff6b6b
+    style ChargeSuccess fill:#51cf66
+    style ResetTokens fill:#51cf66
+    style Error3DS fill:#ff8787
 ```
 
-**Ejemplo de Cálculo de Prorrata:**
+**Cálculo de prorrata (ejemplo):**
+
 ```
-Plan Actual: $50/mes mensual
-Días restantes en período: 15 días (de 30)
-Plan Nuevo: $100/mes mensual
+Plan actual:  Básico
+- Precio: $100 MXN/mes
+- Tokens:  1,000
+- Tokens usados: 400
+- Día del mes: 20 (10 días restantes)
+
+Plan nuevo: Pro
+- Precio: $300 MXN/mes
+- Tokens: 5,000
 
 Cálculo:
-- Crédito = (15/30) × $50 = $25
-- Cargo inmediato = $100 - $25 = $75
-- Próxima renovación (en 15 días): $100 completo
-- Tokens: Resetean INMEDIATAMENTE al pool del plan nuevo
+- Diferencia precio: $300 - $100 = $200
+- Prorrata: $200 × (10 días / 30 días) = $66.67
+- Cargo hoy: $66.67
+- Próximo cobro (día 20): $300 completos
+
+Tokens después de upgrade:
+- Usados: 0
+- Disponibles: 5,000 (completos del plan Pro)
 ```
+
+**⚠️ Consideraciones 3DS:**
+- Upgrade es iniciado por usuario (está presente)
+- Puede requerir 3DS según monto y políticas del banco
+- UX:  Usuario debe saber que puede ser redirigido
+- Mensaje:  "Por seguridad, tu banco puede pedirte confirmar este pago"
+
+**Tiempo estimado:**
+- Sin 3DS: **30 segundos - 1 minuto**
+- Con 3DS: **2-4 minutos**
 
 ---
 
 ## Flujo 5: Downgrade de Plan
 
-**Descripción:** Cambio programado a un plan inferior que se aplica al finalizar el período actual.
+**Objetivo:** Usuario quiere bajar de plan para ahorrar en próximas renovaciones.
+
+**Actores:** Usuario, Sistema
+
+**✅ Sin cambios significativos:** No requiere pago inmediato, por lo tanto no hay 3DS.
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario Activo]) --> ViewDowngrade[Ver Planes Inferiores]
-    ViewDowngrade --> SelectLowerPlan[Seleccionar Plan Menor]
-    SelectLowerPlan --> ShowImpact[Mostrar Impacto del Cambio]
+    Start([Usuario ve opciones de plan]) --> CurrentPlan[Está en plan actual]
+    CurrentPlan --> SeeLower[Ve plan inferior disponible]
+    SeeLower --> CompareFeatures[Compara características y precio]
     
-    ShowImpact --> DisplayTokenReduction[Tokens Reducidos]
-    DisplayTokenReduction --> DisplayNewPrice[Nuevo Precio Menor]
-    DisplayNewPrice --> DisplayEffectiveDate[Efectivo: Próxima Renovación]
-    DisplayEffectiveDate --> DisplayCurrentPlan[Plan Actual Continúa Hasta...]
+    CompareFeatures --> ClickDowngrade[Click: Downgrade a plan inferior]
     
-    DisplayCurrentPlan --> UserConfirms{¿Usuario Confirma?}
+    ClickDowngrade --> ShowWarning[⚠️ Mostrar advertencia]
+    ShowWarning --> Warn1[Cambio aplica al fin del período]
+    Warn1 --> Warn2[Puedes usar tokens actuales hasta entonces]
+    Warn2 --> Warn3[Nuevo plan tendrá menos tokens]
+    Warn3 --> Warn4[Próximo cobro será menor]
     
-    UserConfirms -->|No| DowngradeCancelled([❌ Downgrade Cancelado])
+    Warn4 --> ShowDetails[Mostrar detalles:]
+    ShowDetails --> Detail1[Plan actual: X]
+    Detail1 --> Detail2[Tokens actuales: Y usados / Z total]
+    Detail2 --> Detail3[Fin período:  Fecha]
+    Detail3 --> Detail4[Plan nuevo: A]
+    Detail4 --> Detail5[Tokens nuevos: B/mes]
+    Detail5 --> Detail6[Próximo cobro:  $C]
     
-    UserConfirms -->|Sí| ScheduleDowngrade[Programar Downgrade]
-    ScheduleDowngrade --> SavePendingChange[Guardar Cambio Pendiente]
-    SavePendingChange --> SendConfirmation[📧 Downgrade Programado]
-    SendConfirmation --> ShowStatus[Mostrar Estado: Pendiente]
-    ShowStatus --> DowngradeScheduled([📅 Downgrade Programado])
+    Detail6 --> ConfirmDowngrade{Usuario confirma?}
     
-    DowngradeScheduled --> ContinueCurrent[Continuar con Plan Actual]
-    ContinueCurrent --> MaintainTokens[Mantener Tokens Actuales]
-    MaintainTokens --> WaitRenewal[Esperar Fecha Renovación]
+    ConfirmDowngrade -->|No| Cancel([Cancelar])
+    ConfirmDowngrade -->|Sí| ScheduleChange[Programar cambio de plan]
     
-    WaitRenewal --> UserCancels{¿Usuario Cancela Downgrade?}
-    UserCancels -->|Sí| CancelScheduled[Cancelar Cambio Programado]
-    CancelScheduled --> RemovePending[Eliminar Cambio Pendiente]
-    RemovePending --> SendCancellation[📧 Downgrade Cancelado]
-    SendCancellation --> StayCurrentPlan([✅ Permanece Plan Actual])
+    ScheduleChange --> UpdateSub[Actualizar subscription:]
+    UpdateSub --> SetPending[pending_plan_id = nuevo plan]
+    SetPending --> SetDate[pending_plan_change_date = fin período]
+    SetDate --> SetStatus[status = active cambio programado]
     
-    UserCancels -->|No| RenewalDate{¿Fecha de Renovación?}
+    SetStatus --> EmailConfirm[📧 Email: Downgrade programado]
+    EmailConfirm --> EmailDetails[Detalles en email:]
+    EmailDetails --> DetailEmail1[• Plan actual hasta:  Fecha]
+    DetailEmail1 --> DetailEmail2[• Nuevo plan desde: Fecha]
+    DetailEmail2 --> DetailEmail3[• Nuevo precio: $X]
+    DetailEmail3 --> DetailEmail4[• Nuevos tokens: Y/mes]
     
-    RenewalDate -->|Llega| ExecuteDowngrade[Ejecutar Downgrade]
-    ExecuteDowngrade --> UpdatePlan[Cambiar a Nuevo Plan]
-    UpdatePlan --> ChargeNewPrice[Cobrar Nuevo Precio]
-    ChargeNewPrice --> ChargeResult{¿Cargo Exitoso?}
+    DetailEmail4 --> ShowDashboard[Mostrar dashboard]
+    ShowDashboard --> IndicatorPending[Indicador:  Cambio programado]
+    IndicatorPending --> AllowCancel[Opción: Cancelar cambio]
     
-    ChargeResult -->|No| HandleFailure[Manejar Fallo]
-    HandleFailure --> RetryFlow([Ver Flujo 2: Reintentos])
+    AllowCancel --> UserContinues[Usuario continúa usando plan actual]
+    UserContinues --> ConsumeTokens[Puede consumir tokens normalmente]
     
-    ChargeResult -->|Sí| ResetTokensNew[Resetear a Tokens Nuevo Plan]
-    ResetTokensNew --> SendChangeConfirm[📧 Cambio Aplicado]
-    SendChangeConfirm --> LogChange[Registrar en Audit Log]
-    LogChange --> DowngradeComplete([✅ Downgrade Completado])
+    ConsumeTokens --> WaitEndPeriod[Esperar fin de período]
     
-    style DowngradeComplete fill:#e1f5e1
-    style DowngradeCancelled fill:#ffe6e6
-    style DowngradeScheduled fill:#fff9e6
-    style StayCurrentPlan fill:#e1f5e1
+    WaitEndPeriod --> CronCheck[CronJob: Verificar cambios programados]
+    CronCheck --> ApplyChange[Aplicar cambio de plan]
+    
+    ApplyChange --> UpdatePlan[plan_id = pending_plan_id]
+    UpdatePlan --> ClearPending[pending_plan_id = NULL]
+    ClearPending --> NextBilling[Próximo cobro = nuevo precio]
+    NextBilling --> EmailApplied[📧 Email:  Cambio aplicado]
+    
+    EmailApplied --> End([Fin - Downgrade completado])
+    
+    AllowCancel --> UserCancels{¿Usuario cancela cambio?}
+    UserCancels -->|Sí| CancelSchedule[Cancelar cambio programado]
+    UserCancels -->|No| UserContinues
+    
+    CancelSchedule --> ClearSchedule[Limpiar pending_plan_id]
+    ClearSchedule --> EmailCancelled[📧 Email: Cambio cancelado]
+    EmailCancelled --> StayCurrentPlan([Fin - Se mantiene plan actual])
+    
+    style ScheduleChange fill:#4dabf7
+    style ApplyChange fill:#51cf66
+    style ShowWarning fill:#ffd43b
 ```
 
-**Línea de Tiempo del Downgrade:**
-```
-Día 0: Usuario solicita downgrade
-       - Se programa el cambio
-       - Usuario continúa con plan actual
-       
-Días 1-29: 
-       - Plan actual sigue activo
-       - Tokens del plan actual disponibles
-       - Usuario puede cancelar el downgrade programado
-       
-Día 30: Fecha de renovación
-       - Se ejecuta el downgrade
-       - Se cobra el nuevo precio menor
-       - Tokens resetean al pool del plan nuevo
-       - Confirmación enviada
-```
+**Ventanas de tiempo:**
+- Usuario solicita downgrade: **En cualquier momento**
+- Cambio se aplica: **Al finalizar período actual**
+- Usuario puede cancelar el cambio programado: **Hasta 1 día antes del cambio**
+
+**Diferencia vs Upgrade:**
+- **Upgrade:** Inmediato (cobra prorrata hoy)
+- **Downgrade:** Programado (cobra menos después)
+
+**Razón:** No tiene sentido cobrar "menos" inmediatamente (usuario ya pagó el período completo).
+
+**⚠️ Edge case:** Usuario en plan anual con cobros mensuales
+- Debe completar 12 meses del compromiso
+- Downgrade solo aplica después de cumplir contrato
+- Sistema valida que hayan pasado 12 meses
 
 ---
 
 ## Flujo 6: Sistema de Referidos
 
-**Descripción:** Proceso completo del programa de referidos desde la generación del código hasta el otorgamiento de beneficios.
+**Objetivo:** Usuario invita a amigos y ambos obtienen beneficios cuando el referido hace su primer pago.
+
+**Actores:** Referidor (usuario actual), Referido (nuevo usuario), Sistema
+
+**✅ Sin cambios:** 3DS no afecta este flujo directamente (el pago del referido sigue su flujo normal).
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario Activo]) --> AccessReferral[Acceder a Programa Referidos]
-    AccessReferral --> GenerateCode[Generar Código Único]
-    GenerateCode --> CreateLink[Crear Link Único]
-    CreateLink --> ShowDashboard[Mostrar Dashboard Referidos]
+    Start([Usuario logueado]) --> AccessReferrals[Accede a sección Referidos]
+    AccessReferrals --> ShowCode[Sistema muestra código único]
+    ShowCode --> GenerateLink[Genera link único]
     
-    ShowDashboard --> ShareOptions[Opciones para Compartir]
-    ShareOptions --> ShareEmail[📧 Email]
-    ShareOptions --> ShareSocial[📱 Redes Sociales]
-    ShareOptions --> ShareDirect[🔗 Link Directo]
+    GenerateLink --> Display[Mostrar en pantalla:]
+    Display --> Code[Código: CESAR2026]
+    Code --> Link[Link: app.com/register?ref=abc123]
+    Link --> ShareButtons[Botones compartir:  WhatsApp, Email, Copy]
     
-    ShareEmail --> ReferrerShares([Referidor Comparte])
-    ShareSocial --> ReferrerShares
-    ShareDirect --> ReferrerShares
+    ShareButtons --> UserShares{Usuario comparte}
     
-    ReferrerShares --> FriendReceives[Amigo Recibe Invitación]
-    FriendReceives --> FriendClicks[Amigo Click en Link]
-    FriendClicks --> CaptureCode[Capturar Código de Referido]
-    CaptureCode --> ShowPlans[Mostrar Planes]
+    UserShares -->|WhatsApp| ShareWA[Envía por WhatsApp]
+    UserShares -->|Email| ShareEmail[Envía por email]
+    UserShares -->|Copy| CopyLink[Copia link]
     
-    ShowPlans --> FriendRegisters{¿Amigo se Registra?}
+    ShareWA --> FriendReceives[Amigo recibe invitación]
+    ShareEmail --> FriendReceives
+    CopyLink --> FriendReceives
     
-    FriendRegisters -->|No| LinkExpires([❌ Link No Usado])
+    FriendReceives --> FriendClicks{Amigo hace clic? }
     
-    FriendRegisters -->|Sí| CreateReferral[Crear Registro Referral]
-    CreateReferral --> AssociateCode[Asociar Código]
-    AssociateCode --> SetStatusPending[Status: Pending]
-    SetStatusPending --> CompleteRegistration[Completar Registro]
-    CompleteRegistration --> StartTrial[Iniciar Trial]
-    StartTrial --> NotifyReferrer1[🔔 Notificar Referidor: Registro]
-    NotifyReferrer1 --> ReferredInTrial([🎯 Referido en Trial])
+    FriendClicks -->|No| NoAction([No hay acción])
+    FriendClicks -->|Sí| OpenLink[Abre link]
     
-    ReferredInTrial --> TrialPeriod[Período de Trial]
-    TrialPeriod --> TrialEnds{¿Resultado Trial?}
+    OpenLink --> DetectRef[Sistema detecta parámetro ref]
+    DetectRef --> ValidateCode{¿Código válido?}
     
-    TrialEnds -->|Cancela| MarkExpired[Marcar Referral: Expired]
-    MarkExpired --> NoConversion([❌ Sin Conversión])
+    ValidateCode -->|No| NormalReg[Registro normal sin referido]
+    ValidateCode -->|Sí| StoreRef[Guardar referido_por]
     
-    TrialEnds -->|Convierte| FirstPayment[Primer Pago Exitoso]
-    FirstPayment --> ValidatePayment{¿Pago Confirmado?}
+    StoreRef --> ShowBenefit[Mostrar beneficio al referido]
+    ShowBenefit --> BenefitMsg[💰 Tienes 10% descuento primer mes]
+    BenefitMsg --> RegisterFlow[Continúa registro normal]
     
-    ValidatePayment -->|No| WaitConfirm[Esperar Confirmación]
-    WaitConfirm --> ValidatePayment
+    RegisterFlow --> FriendRegisters[Amigo completa registro]
+    FriendRegisters --> FriendTrial[Amigo activa trial]
     
-    ValidatePayment -->|Sí| MarkCompleted[Marcar Referral: Completed]
-    MarkCompleted --> GetBenefitsConfig[Obtener Config Beneficios]
+    FriendTrial --> CreateReferral[Crear registro en referrals:]
+    CreateReferral --> RefStatus[status = pending]
     
-    GetBenefitsConfig --> GrantReferrerBenefit[Otorgar Beneficio Referidor]
-    GrantReferrerBenefit --> CheckBenefitType{Tipo Beneficio}
+    RefStatus --> WaitFirstPayment[Esperar primer pago del referido]
     
-    CheckBenefitType -->|Descuento| ApplyDiscount[Aplicar Descuento Próxima Renovación]
-    CheckBenefitType -->|Tokens| AddTokens[Agregar Tokens Extra]
-    CheckBenefitType -->|Crédito| AddCredit[Agregar Crédito Plataforma]
+    WaitFirstPayment --> FriendPays{¿Referido hace primer pago?}
     
-    ApplyDiscount --> NotifyReferrer2[📧 Beneficio Otorgado]
-    AddTokens --> NotifyReferrer2
-    AddCredit --> NotifyReferrer2
+    FriendPays -->|No - Cancela trial| RefExpired[Referral:  status = expired]
+    FriendPays -->|Sí - Paga después trial| ProcessBenefits[Procesar beneficios]
     
-    NotifyReferrer2 --> GrantReferredBenefit[Otorgar Beneficio Referido]
-    GrantReferredBenefit --> ApplyReferredDiscount[Aplicar Descuento]
-    ApplyReferredDiscount --> SendReferredCode[📧 Código Descuento]
-    SendReferredCode --> UpdateDashboard[Actualizar Dashboard]
-    UpdateDashboard --> LogBenefits[Registrar en Audit Log]
-    LogBenefits --> ReferralComplete([✅ Referido Completado])
+    RefExpired --> EndExpired([Fin - Sin beneficios])
     
-    ReferralComplete --> CheckLimit{¿Límite Alcanzado?}
-    CheckLimit -->|No| CanReferMore([Puede Referir Más])
-    CheckLimit -->|Sí| LimitReached([⚠️ Límite Alcanzado])
+    ProcessBenefits --> GrantReferrerBenefits[Otorgar a REFERIDOR:]
+    GrantReferrerBenefits --> Benefit1[• Descuento 20% próximo mes]
+    Benefit1 --> Benefit2[• 1,000 tokens extra]
+    Benefit2 --> Benefit3[• $100 crédito plataforma]
     
-    style ReferralComplete fill:#e1f5e1
-    style NoConversion fill:#ffe6e6
-    style LinkExpires fill:#ffe6e6
-    style ReferredInTrial fill:#fff9e6
+    Benefit3 --> GrantReferredBenefits[Otorgar a REFERIDO:]
+    GrantReferredBenefits --> Benefit4[• Descuento 10% primer mes]
+    
+    Benefit4 --> UpdateReferral[Actualizar referral:]
+    UpdateReferral --> RefComplete[status = completed]
+    RefComplete --> RefDate[completed_at = ahora]
+    
+    RefDate --> EmailReferrer[📧 Email a referidor:  Beneficios otorgados]
+    EmailReferrer --> EmailReferred[📧 Email a referido:  Bienvenida con descuento]
+    
+    EmailReferred --> UpdateDashboard[Actualizar dashboard referidor]
+    UpdateDashboard --> ShowStats[Mostrar estadísticas:]
+    ShowStats --> Stat1[Referidos totales: X]
+    Stat1 --> Stat2[Beneficios ganados: $Y]
+    Stat2 --> Stat3[Tokens extra obtenidos: Z]
+    
+    Stat3 --> CheckLimit{¿Alcanzó límite referidos?}
+    
+    CheckLimit -->|No| CanRefer[Puede seguir refiriendo]
+    CheckLimit -->|Sí| MaxReached[Límite alcanzado]
+    
+    CanRefer --> End([Fin - Puede referir más])
+    MaxReached --> EndMax([Fin - Máximo alcanzado])
+    NormalReg --> EndNormal([Fin - Registro sin referido])
+    
+    style ProcessBenefits fill:#51cf66
+    style GrantReferrerBenefits fill:#51cf66
+    style RefComplete fill:#51cf66
 ```
 
-**Configuración de Beneficios (Ejemplo):**
-```json
-{
-  "referrer": {
-    "type": "discount",
-    "value": 20,
-    "unit": "percentage",
-    "duration_months": 1
-  },
-  "referred": {
-    "type": "discount",
-    "value": 10,
-    "unit": "percentage",
-    "duration_months": 3
-  }
-}
-```
+**Configuración de beneficios (ejemplo):**
+
+**Referidor obtiene:**
+- ✅ Descuento:  20% en próximo mes
+- ✅ Tokens extra: 1,000 tokens bonus (únicos, no mensuales)
+- ✅ Crédito:  $100 MXN para pagar futuras facturas
+
+**Referido obtiene:**
+- ✅ Descuento: 10% en primer mes de pago
+
+**Reglas:**
+- ✅ Beneficio se otorga al **primer pago del referido** (no en trial)
+- ✅ Un referido = un beneficio (no renovable)
+- ✅ Repetible:  Puede referir múltiples amigos
+- ✅ Límite: Configurable (ej: máximo 10 referidos)
+
+**Tracking:**
+- Cookie/localStorage:  30 días
+- Si usuario no se registra inmediato, código persiste
+- Si limpia cookies, se pierde tracking
+
+**Prevención de abuso:**
+- ✅ Validar que referido sea usuario nuevo (email no existe)
+- ✅ Validar que referido complete trial y pague
+- ✅ Límite máximo por referidor
+- ✅ Detección de patrones sospechosos (misma IP, mismo método pago)
 
 ---
 
 ## Flujo 7: Aplicación de Cupón
 
-**Descripción:** Validación y aplicación de cupones de descuento.
+**Objetivo:** Usuario aplica un cupón de descuento al seleccionar plan o durante suscripción activa.
+
+**Actores:** Usuario, Sistema
+
+**✅ Sin cambios:** 3DS no afecta validación de cupones (solo reduce monto a cobrar).
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario en Checkout]) --> EnterCode[Ingresar Código de Cupón]
-    EnterCode --> SubmitCode[Enviar Código]
-    SubmitCode --> ValidateCoupon[Validar Cupón]
+    Start([Usuario en selección de plan]) --> SeePlan[Ve plan con precio normal]
+    SeePlan --> SeeField[Ve campo:  Código de cupón opcional]
     
-    ValidateCoupon --> CouponExists{¿Cupón Existe?}
+    SeeField --> HasCoupon{¿Tiene cupón?}
     
-    CouponExists -->|No| ErrorNotFound[❌ Cupón No Encontrado]
-    ErrorNotFound --> ShowError1[Mostrar Error]
-    ShowError1 --> RetryCode{¿Reintentar?}
-    RetryCode -->|Sí| EnterCode
-    RetryCode -->|No| CouponFailed([❌ Sin Cupón])
+    HasCoupon -->|No| NoCoupon[Continúa sin cupón]
+    HasCoupon -->|Sí| EnterCode[Ingresa código]
     
-    CouponExists -->|Sí| IsActive{¿Cupón Activo?}
+    EnterCode --> ClickApply[Click: Aplicar cupón]
+    ClickApply --> SendCode[Envía código al backend]
     
-    IsActive -->|No| ErrorInactive[❌ Cupón Inactivo]
-    ErrorInactive --> ShowError2[Mostrar Error]
-    ShowError2 --> RetryCode
+    SendCode --> ValidateCoupon[Backend valida cupón]
+    ValidateCoupon --> Check1{¿Cupón existe?}
     
-    IsActive -->|Sí| CheckExpiration{¿Expirado?}
+    Check1 -->|No| ErrorNotFound[❌ Error: Cupón no encontrado]
+    Check1 -->|Sí| Check2{¿Está activo?}
     
-    CheckExpiration -->|Sí| ErrorExpired[❌ Cupón Expirado]
-    ErrorExpired --> ShowError3[Mostrar Error]
-    ShowError3 --> RetryCode
+    Check2 -->|No| ErrorInactive[❌ Error:  Cupón inactivo]
+    Check2 -->|Sí| Check3{¿No expiró?}
     
-    CheckExpiration -->|No| CheckUsageLimit{¿Límite Alcanzado?}
+    Check3 -->|Expiró| ErrorExpired[❌ Error: Cupón expirado]
+    Check3 -->|Vigente| Check4{¿Aplica al plan seleccionado?}
     
-    CheckUsageLimit -->|Sí| ErrorLimit[❌ Límite de Usos Alcanzado]
-    ErrorLimit --> ShowError4[Mostrar Error]
-    ShowError4 --> RetryCode
+    Check4 -->|No| ErrorPlan[❌ Error: No aplica a este plan]
+    Check4 -->|Sí| Check5{¿Usuario no lo usó antes?}
     
-    CheckUsageLimit -->|No| CheckUserUsed{¿Usuario Ya Usó?}
+    Check5 -->|Ya lo usó| ErrorUsed[❌ Error:  Ya usaste este cupón]
+    Check5 -->|No usó| Check6{¿No alcanzó límite de usos?}
     
-    CheckUserUsed -->|Sí| ErrorAlreadyUsed[❌ Ya Usaste Este Cupón]
-    ErrorAlreadyUsed --> ShowError5[Mostrar Error]
-    ShowError5 --> RetryCode
+    Check6 -->|Límite alcanzado| ErrorLimit[❌ Error: Cupón agotado]
+    Check6 -->|Disponible| CouponValid[✅ Cupón válido]
     
-    CheckUserUsed -->|No| CheckPlanApplicable{¿Aplica a Plan?}
+    ErrorNotFound --> ShowError[Mostrar mensaje de error]
+    ErrorInactive --> ShowError
+    ErrorExpired --> ShowError
+    ErrorPlan --> ShowError
+    ErrorUsed --> ShowError
+    ErrorLimit --> ShowError
     
-    CheckPlanApplicable -->|No| ErrorPlanNotApplicable[❌ No Aplica a Este Plan]
-    ErrorPlanNotApplicable --> ShowError6[Mostrar Error]
-    ShowError6 --> RetryCode
+    ShowError --> RetryOption{¿Reintentar?}
+    RetryOption -->|Sí| EnterCode
+    RetryOption -->|No| NoCoupon
     
-    CheckPlanApplicable -->|Sí| CheckActiveCoupon{¿Tiene Cupón Activo?}
+    CouponValid --> CalcDiscount[Calcular descuento]
+    CalcDiscount --> TypeCheck{¿Tipo cupón?}
     
-    CheckActiveCoupon -->|Sí| ErrorNotStackable[❌ Cupones No Acumulables]
-    ErrorNotStackable --> ShowError7[Mostrar Error]
-    ErrorNotStackable --> OfferReplace[Ofrecer Reemplazar]
-    OfferReplace --> UserReplace{¿Reemplazar?}
-    UserReplace -->|No| RetryCode
-    UserReplace -->|Sí| RemoveOldCoupon[Remover Cupón Anterior]
-    RemoveOldCoupon --> ApplyCoupon
+    TypeCheck -->|Porcentaje| CalcPercentage[Descuento = Precio × Porcentaje%]
+    TypeCheck -->|Fijo| CalcFixed[Descuento = Monto fijo]
     
-    CheckActiveCoupon -->|No| ApplyCoupon[✅ Cupón Válido]
-    ApplyCoupon --> CalculateDiscount[Calcular Descuento]
+    CalcPercentage --> ShowNewPrice[Mostrar precio con descuento]
+    CalcFixed --> ShowNewPrice
     
-    CalculateDiscount --> CouponType{Tipo}
+    ShowNewPrice --> Display[Mostrar en pantalla:]
+    Display --> Price1[Precio original: $X]
+    Price1 --> Discount[Descuento: -$Y]
+    Discount --> Price2[Precio final: $Z]
+    Price2 --> Duration[Duración descuento: N meses o permanente]
     
-    CouponType -->|Porcentaje| CalcPercentage[Descuento = Precio × %]
-    CouponType -->|Fijo| CalcFixed[Descuento = Monto Fijo]
+    Duration --> UserConfirms{Usuario confirma?}
     
-    CalcPercentage --> ShowFinalPrice
-    CalcFixed --> ShowFinalPrice[Mostrar Precio Final]
+    UserConfirms -->|No| RemoveCoupon[Quitar cupón]
+    UserConfirms -->|Sí| ApplyCoupon[Aplicar cupón]
     
-    ShowFinalPrice --> ShowSavings[Mostrar Ahorro]
-    ShowSavings --> ShowDuration[Mostrar Duración]
-    ShowDuration --> SaveCoupon[Guardar Asociación]
-    SaveCoupon --> IncrementUsage[Incrementar Uso del Cupón]
-    IncrementUsage --> AppliedSuccess([✅ Cupón Aplicado])
+    RemoveCoupon --> NoCoupon
     
-    AppliedSuccess --> ProcessPayment[Procesar Pago con Descuento]
-    ProcessPayment --> PaymentResult{¿Pago Exitoso?}
+    ApplyCoupon --> SaveCoupon[Guardar en user_coupons]
+    SaveCoupon --> IncrementUsage[Incrementar current_usage del cupón]
+    IncrementUsage --> StoreSub[Asociar cupón a suscripción]
     
-    PaymentResult -->|Sí| ActivateSubscription[Activar Suscripción]
-    ActivateSubscription --> ApplyRecurring{¿Descuento Permanente?}
+    StoreSub --> ProcessPayment[Procesar pago con descuento]
+    ProcessPayment --> ChargeAmount[Cobra monto con descuento]
     
-    ApplyRecurring -->|Sí| SetPermanent[Aplicar en Todas Renovaciones]
-    ApplyRecurring -->|No| SetDuration[Aplicar por N Meses]
+    ChargeAmount --> Success{¿Pago exitoso?}
     
-    SetPermanent --> CouponActive([✅ Descuento Activo])
-    SetDuration --> CouponActive
+    Success -->|Sí| Activate[Activar suscripción]
+    Success -->|No| HandleFailure[Manejar fallo pago]
     
-    PaymentResult -->|No| PaymentFailed[Pago Fallido]
-    PaymentFailed --> RevertCoupon[Revertir Cupón]
-    RevertCoupon --> DecrementUsage[Decrementar Uso]
-    DecrementUsage --> PaymentError([❌ Error de Pago])
+    Activate --> EmailConfirm[📧 Email: Confirmación con descuento]
+    EmailConfirm --> ShowDashboard[Mostrar dashboard]
+    ShowDashboard --> IndicateCoupon[Indicador: Descuento activo]
     
-    style AppliedSuccess fill:#e1f5e1
-    style CouponActive fill:#e1f5e1
-    style CouponFailed fill:#ffe6e6
-    style PaymentError fill:#ffe6e6
+    IndicateCoupon --> CheckRenewal[En cada renovación:]
+    CheckRenewal --> ValidateDuration{¿Descuento aún aplica?}
+    
+    ValidateDuration -->|Sí| ApplyRenewal[Aplicar descuento]
+    ValidateDuration -->|No - Expiró duración| RemoveExpired[Remover descuento]
+    
+    ApplyRenewal --> ChargeDiscounted[Cobrar con descuento]
+    RemoveExpired --> ChargeNormal[Cobrar precio normal]
+    
+    ChargeDiscounted --> End([Fin - Con descuento])
+    ChargeNormal --> EndNormal([Fin - Precio normal])
+    
+    NoCoupon --> EndNoCoupon([Fin - Sin cupón])
+    HandleFailure --> EndFail([Fin - Pago fallido])
+    
+    style CouponValid fill:#51cf66
+    style ShowNewPrice fill:#4dabf7
+    style ApplyCoupon fill:#51cf66
+    style ShowError fill:#ff8787
 ```
 
-**Ejemplo de Validación:**
+**Tipos de cupón:**
+
+**1. Porcentaje:**
 ```
-Cupón: PROMO20
+Código:  PROMO20
 Tipo: Porcentaje
 Valor: 20%
-Duración: 3 meses
-Plan: Google Tech + IA 100
-Precio Original: $100/mes
-
-Validaciones:
-✅ Cupón existe
-✅ Está activo
-✅ No expirado
-✅ Límite no alcanzado (50 de 100)
-✅ Usuario no lo ha usado
-✅ Aplica al plan seleccionado
-✅ Usuario no tiene otro cupón activo
-
-Resultado:
-- Descuento: $20/mes
-- Precio Final: $80/mes
-- Duración: 3 meses
-- Después del mes 3: vuelve a $100/mes
+Precio original: $300 MXN
+Descuento: $60 MXN
+Precio final: $240 MXN
 ```
+
+**2. Precio fijo:**
+```
+Código: DESC50
+Tipo: Fijo
+Valor: $50 MXN
+Precio original: $300 MXN
+Descuento: $50 MXN
+Precio final: $250 MXN
+```
+
+**Duración:**
+- **Permanente:** Aplica mientras mantenga suscripción
+- **Temporal:** Solo X meses (ej: 3 meses, luego precio normal)
+
+**Validaciones completas:**
+1. ✅ Cupón existe en BD
+2. ✅ Estado activo (`active=true`)
+3. ✅ No expiró (`expires_at > now()` o `NULL`)
+4. ✅ Aplica al plan (`applicable_plans` incluye plan o es `NULL`)
+5. ✅ Usuario no lo usó (`user_coupons` no tiene registro)
+6. ✅ No alcanzó límite (`current_usage < usage_limit` o `NULL`)
+
+**Edge cases:**
+- **Usuario cambia de plan:** Cupón puede o no aplicar al nuevo plan (validar)
+- **Usuario cancela y regresa:** No puede reusar mismo cupón
+- **Cupón expira durante suscripción:** Próxima renovación ya no tiene descuento
 
 ---
 
 ## Flujo 8: Solicitud de Factura
 
-**Descripción:** Proceso de solicitud, generación y entrega de facturas electrónicas.
+**Objetivo:** Usuario solicita factura electrónica de un pago realizado. 
+
+**Actores:** Usuario, Sistema, Admin, PAC/DIAN (externo)
+
+**✅ Sin cambios:** 3DS no afecta facturación (solo confirmación de pago ya realizado).
 
 ```mermaid
 flowchart TD
-    Start([👤 Usuario con Pago]) --> AccessInvoices[Acceder a Facturas]
-    AccessInvoices --> ViewPayments[Ver Historial de Pagos]
-    ViewPayments --> SelectPayment[Seleccionar Pago para Facturar]
+    Start([Usuario logueado]) --> AccessInvoices[Accede a sección Facturas]
+    AccessInvoices --> SeePayments[Ve historial de pagos]
     
-    SelectPayment --> CheckAlreadyInvoiced{¿Ya Facturado?}
+    SeePayments --> SelectPayment{Selecciona pago sin factura}
     
-    CheckAlreadyInvoiced -->|Sí| ShowExistingInvoice[Mostrar Factura Existente]
-    ShowExistingInvoice --> DownloadPDF[Descargar PDF]
-    DownloadPDF --> Done([✅ Factura Descargada])
+    SelectPayment --> CheckTime{¿Dentro del límite de tiempo?}
     
-    CheckAlreadyInvoiced -->|No| CheckFiscalData{¿Datos Fiscales Completos?}
+    CheckTime -->|No - México >1 mes| ErrorTimeMX[❌ Error: Límite 1 mes vencido]
+    CheckTime -->|No - Colombia >5 días| ErrorTimeCO[❌ Error: Límite 5 días vencido]
+    CheckTime -->|Sí| CheckBillingData{¿Tiene datos fiscales?}
     
-    CheckFiscalData -->|No| RedirectFiscal[Redirigir a Datos Fiscales]
-    RedirectFiscal --> FillFiscalData[Completar Formulario]
-    FillFiscalData --> ValidateFiscal[Validar Datos]
-    ValidateFiscal --> FiscalValid{¿Válidos?}
+    ErrorTimeMX --> EndError([Fin - Fuera de tiempo])
+    ErrorTimeCO --> EndError
     
-    FiscalValid -->|No| ShowFiscalErrors[Mostrar Errores]
-    ShowFiscalErrors --> FillFiscalData
+    CheckBillingData -->|No| RedirectBilling[Redirigir a completar datos]
+    CheckBillingData -->|Sí| ValidateBilling{¿Datos completos?}
     
-    FiscalValid -->|Sí| SaveFiscalData[Guardar Datos Fiscales]
-    SaveFiscalData --> ProceedRequest
+    RedirectBilling --> FillBillingForm[Formulario datos fiscales]
     
-    CheckFiscalData -->|Sí| ProceedRequest[Proceder a Solicitud]
-    ProceedRequest --> CheckCountry{País}
+    FillBillingForm --> CountryCheck{¿País? }
     
-    CheckCountry -->|México| CheckMXLimit[Verificar Límite: Mismo Mes]
-    CheckCountry -->|Colombia| CheckCOLimit[Verificar Límite: 5 Días]
+    CountryCheck -->|México| FillMX[RFC, Razón social, Régimen, CP, Uso CFDI]
+    CountryCheck -->|Colombia| FillCO[NIT, Razón social, Tipo persona, Dirección, Ciudad, Depto]
     
-    CheckMXLimit --> MXValid{¿Dentro de Plazo?}
-    CheckCOLimit --> COValid{¿Dentro de Plazo?}
+    FillMX --> SaveBilling[Guardar en billing_data]
+    FillCO --> SaveBilling
+    SaveBilling --> ValidateBilling
     
-    MXValid -->|No| ErrorMXExpired[❌ Plazo Vencido MX]
-    ErrorMXExpired --> ShowMXMessage[Mostrar: Debe ser mismo mes]
-    ShowMXMessage --> RequestFailed([❌ Solicitud Rechazada])
+    ValidateBilling -->|No - Incompletos| ErrorBilling[❌ Error:  Datos incompletos]
+    ValidateBilling -->|Sí| ShowSummary[Mostrar resumen:]
     
-    COValid -->|No| ErrorCOExpired[❌ Plazo Vencido CO]
-    ErrorCOExpired --> ShowCOMessage[Mostrar: Debe ser en 5 días]
-    ShowCOMessage --> RequestFailed
+    ErrorBilling --> FillBillingForm
     
-    MXValid -->|Sí| CreateRequest
-    COValid -->|Sí| CreateRequest[Crear Solicitud de Factura]
+    ShowSummary --> Sum1[Pago: $X Fecha]
+    Sum1 --> Sum2[Datos fiscales: Y]
+    Sum2 --> Sum3[Factura se enviará a:  email]
     
-    CreateRequest --> SaveRequest[Guardar en BD]
-    SaveRequest --> SetStatusPending[Status: Pending]
-    SetStatusPending --> NotifyAdmin[🔔 Notificar Admin]
-    NotifyAdmin --> ConfirmUser[📧 Solicitud Recibida]
-    ConfirmUser --> RequestCreated([📋 Solicitud Creada])
+    Sum3 --> UserConfirms{Usuario confirma solicitud?}
     
-    RequestCreated --> AdminQueue[En Cola Admin]
-    AdminQueue --> AdminAccess[Admin Accede a Solicitudes]
-    AdminAccess --> ViewRequest[Ver Solicitud]
-    ViewRequest --> ReviewData[Revisar Datos Fiscales]
+    UserConfirms -->|No| Cancel([Cancelar])
+    UserConfirms -->|Sí| CreateRequest[Crear solicitud]
     
-    ReviewData --> AdminValidates{¿Datos Correctos?}
+    CreateRequest --> UpdateInvoice[Crear registro invoices:]
+    UpdateInvoice --> InvStatus[status = requested]
+    InvStatus --> InvRequested[requested_at = ahora]
+    InvRequested --> InvNull[sent_at = NULL, file_url = NULL]
     
-    AdminValidates -->|No| ContactUser[Contactar Usuario]
-    ContactUser --> UserCorrects[Usuario Corrige]
-    UserCorrects --> ReviewData
+    InvNull --> EmailUser[📧 Email a usuario:  Solicitud recibida]
+    EmailUser --> NotifyAdmin[🔔 Notificar admin]
     
-    AdminValidates -->|Sí| GenerateExternal[Generar Factura Externa]
-    GenerateExternal --> CountrySystem{Sistema}
+    NotifyAdmin --> AdminDashboard[Admin ve en dashboard:]
+    AdminDashboard --> PendingList[Lista solicitudes pendientes]
     
-    CountrySystem -->|México| UsePAC[Usar PAC para CFDI]
-    CountrySystem -->|Colombia| UseDIAN[Usar Sistema DIAN]
+    PendingList --> AdminAccess[Admin accede a solicitud]
+    AdminAccess --> SeeDetails[Ve detalles completos:]
+    SeeDetails --> Det1[Usuario, monto, fecha pago]
+    Det1 --> Det2[Datos fiscales completos]
+    Det2 --> Det3[Botón:  Generar factura]
     
-    UsePAC --> GetXMLPDF[Obtener XML y PDF]
-    UseDIAN --> GetPDF[Obtener PDF]
+    Det3 --> AdminGenerates{Admin genera factura}
     
-    GetXMLPDF --> UploadFiles
-    GetPDF --> UploadFiles[Admin Sube Archivos]
+    AdminGenerates --> ExternalSystem[Sistema externo PAC/DIAN]
+    ExternalSystem --> GeneratePDF[Genera factura PDF]
     
-    UploadFiles --> SaveFileURL[Guardar URL en BD]
-    SaveFileURL --> UpdateStatusGenerated[Status: Generated]
-    UpdateStatusGenerated --> SendToUser[Enviar Email con Factura]
-    SendToUser --> AttachPDF[Adjuntar PDF]
-    AttachPDF --> UpdateStatusSent[Status: Sent]
-    UpdateStatusSent --> LogDelivery[Registrar Envío]
-    LogDelivery --> InvoiceSent([✅ Factura Enviada])
+    GeneratePDF --> DownloadPDF[Admin descarga PDF]
+    DownloadPDF --> UploadToPlatform[Admin sube PDF a plataforma]
     
-    InvoiceSent --> UserReceives[📧 Usuario Recibe Email]
-    UserReceives --> DownloadInvoice[Descargar Factura]
-    DownloadInvoice --> AvailableHistory[Disponible en Historial]
-    AvailableHistory --> Complete([✅ Proceso Completo])
+    UploadToPlatform --> SaveFile[Guardar archivo en storage]
+    SaveFile --> UpdateInvoiceRecord[Actualizar invoice:]
+    UpdateInvoiceRecord --> InvFile[file_url = ruta_archivo]
+    InvFile --> InvSent[sent_at = ahora]
+    InvSent --> InvComplete[status = completed]
     
-    style Complete fill:#e1f5e1
-    style RequestFailed fill:#ffe6e6
-    style RequestCreated fill:#fff9e6
-    style InvoiceSent fill:#e1f5e1
+    InvComplete --> EmailInvoice[📧 Email a usuario con PDF adjunto]
+    EmailInvoice --> UserReceives[Usuario recibe factura]
+    
+    UserReceives --> UserDashboard[Usuario ve en dashboard]
+    UserDashboard --> DownloadOption[Opción:  Descargar factura]
+    
+    DownloadOption --> End([Fin - Factura entregada])
+    
+    style CreateRequest fill:#4dabf7
+    style GeneratePDF fill:#51cf66
+    style EmailInvoice fill:#51cf66
+    style ErrorTimeMX fill:#ff8787
+    style ErrorTimeCO fill:#ff8787
 ```
 
-**Límites de Tiempo por País:**
+**Límites de tiempo por país:**
 
-| País | Límite | Validación |
-|------|--------|-----------|
-| **México** | Mismo mes del pago | `payment_date.month === current_date.month && payment_date.year === current_date.year` |
-| **Colombia** | 5 días después del pago | `current_date <= payment_date + 5 days` |
+**México:**
+- ✅ **Mismo mes del pago**
+- Ejemplo:  Pago el 25 de enero → Límite: 31 de enero 23:59
+- Razón:  Normativa SAT
 
-**Datos Fiscales Requeridos:**
+**Colombia:**
+- ✅ **5 días hábiles después del pago**
+- Ejemplo: Pago lunes → Límite: lunes siguiente
+- Razón: Normativa DIAN
+
+**Datos fiscales requeridos:**
 
 **México (CFDI):**
-- RFC
-- Razón Social
-- Régimen Fiscal
-- Código Postal
-- Uso de CFDI
+```
+RFC:  XAXX010101000
+Razón social:  Empresa SA de CV
+Régimen fiscal: 612 - Personas Físicas con Actividades Empresariales
+Código postal: 06600
+Uso CFDI: G03 - Gastos en general
+```
 
 **Colombia (DIAN):**
-- NIT
-- Razón Social
-- Tipo de Persona (Natural/Jurídica)
-- Dirección
-- Ciudad
-- Departamento
+```
+NIT: 900123456-7
+Razón social: Empresa SAS
+Tipo persona: Jurídica
+Dirección: Calle 123 #45-67
+Ciudad: Bogotá
+Departamento: Cundinamarca
+```
+
+**Generación externa:**
+- **México:** PAC (Proveedor Autorizado Certificación) - ej:  Facturama, FacturAPI
+- **Colombia:** Plataforma DIAN - ej: Siigo, Alegra
+
+**Almacenamiento:**
+- PDF se guarda en servidor (FTP mismo servidor)
+- Ruta: `/storage/invoices/YYYY/MM/invoice_{id}.pdf`
+- Disponible para descarga por usuario indefinidamente
 
 ---
 
-## Resumen de Flujos
+## 🆕 Flujo 9: Autenticación de Pago Pendiente (3DS)
 
-| Flujo | Complejidad | Tiempo Estimado | Actores Involucrados |
-|-------|-------------|-----------------|---------------------|
-| **1. Registro y Trial** | Alta | 5-10 minutos | Usuario, Sistema, Openpay |
-| **2. Pagos Recurrentes** | Alta | Automático (2 meses en gracia) | Sistema, Openpay, Usuario |
-| **3. Pagos Manuales** | Media | 1-3 días | Usuario, Admin, Sistema |
-| **4. Upgrade** | Media | 2-5 minutos | Usuario, Sistema, Openpay |
-| **5. Downgrade** | Baja | 1 minuto + espera | Usuario, Sistema |
-| **6. Referidos** | Media | Variable (depende conversión) | Referidor, Referido, Sistema |
-| **7. Cupones** | Baja | 1 minuto | Usuario, Sistema |
-| **8. Facturación** | Media | 1-3 días | Usuario, Admin, PAC/DIAN |
+**Objetivo:** Usuario recibe notificación de que su pago requiere autenticación y completa el proceso.
+
+**Actores:** Usuario, Sistema, Openpay, Banco Emisor
+
+**✨ NUEVO:** Este flujo es específico para cuando una renovación automática requiere 3DS.
+
+```mermaid
+flowchart TD
+    Start([Usuario recibe Email #20]) --> EmailReceived[📧 Email:  Acción requerida - Autentica tu pago]
+    
+    EmailReceived --> EmailContent[Ve contenido:]
+    EmailContent --> Content1[Asunto: 🔒 Acción requerida]
+    Content1 --> Content2[Pago de $X requiere autenticación]
+    Content2 --> Content3[Botón: Autenticar mi pago ahora]
+    Content3 --> Content4[Tiempo límite: 24 horas]
+    Content4 --> Content5[Razón: Seguridad de tu banco]
+    
+    Content5 --> UserDecision{Usuario decide}
+    
+    UserDecision -->|Ignora email| Timeout24h[Timeout 24h]
+    UserDecision -->|Hace clic en botón| ClickLink[Clic en link email]
+    
+    ClickLink --> CheckLogin{¿Usuario logueado?}
+    
+    CheckLogin -->|No| RedirectLogin[Redirigir a login]
+    CheckLogin -->|Sí| LoadAuthPage[Cargar página autenticación]
+    
+    RedirectLogin --> UserLogin[Usuario hace login]
+    UserLogin --> LoadAuthPage
+    
+    LoadAuthPage --> ShowPage[Mostrar página de autenticación]
+    ShowPage --> DisplayInfo[Mostrar información:]
+    
+    DisplayInfo --> Info1[💳 Pago pendiente de autenticación]
+    Info1 --> Info2[Plan: X]
+    Info2 --> Info3[Monto: $Y]
+    Info3 --> Info4[Fecha: Z]
+    Info4 --> Info5[Estado: Requiere autenticación]
+    
+    Info5 --> ExplainWhy[Explicar por qué:]
+    ExplainWhy --> Why1[🔒 Tu banco requiere verificar tu identidad]
+    Why1 --> Why2[✅ Es un proceso seguro y rápido]
+    Why2 --> Why3[⏱️ Toma menos de 1 minuto]
+    Why3 --> Why4[🛡️ Protege tu dinero de fraude]
+    
+    Why4 --> ButtonAuth[Botón grande: Autenticar mi pago]
+    
+    ButtonAuth --> UserClicks{Usuario hace clic? }
+    
+    UserClicks -->|No| UserLeaves[Usuario sale de página]
+    UserClicks -->|Sí| InitAuth[Iniciar proceso 3DS]
+    
+    UserLeaves --> Timeout24h
+    
+    InitAuth --> RetryCharge[Reintentar cargo con 3DS]
+    RetryCharge --> OpenpayRequest[Solicitar a Openpay con 3DS=true]
+    
+    OpenpayRequest --> OpenpayResponse{Respuesta Openpay}
+    
+    OpenpayResponse -->|Requiere 3DS| Get3DSURL[Obtener URL autenticación]
+    OpenpayResponse -->|Error técnico| ErrorTech[Error técnico]
+    
+    Get3DSURL --> Show3DSModal[Mostrar modal/iframe 3DS]
+    Show3DSModal --> LoadingMsg[Mensaje:  Cargando...]
+    LoadingMsg --> BankPage[Cargar página del banco]
+    
+    BankPage --> PageLoaded{¿Página carga OK?}
+    
+    PageLoaded -->|No - Timeout| Error3DSLoad[Error:  No se pudo cargar]
+    PageLoaded -->|Sí| ShowBankAuth[Mostrar opciones del banco]
+    
+    ShowBankAuth --> BankOptions[Opciones presentadas:]
+    BankOptions --> Opt1[• Enviar código SMS]
+    Opt1 --> Opt2[• Confirmar en app bancaria]
+    Opt2 --> Opt3[• Biometría huella/Face ID]
+    
+    Opt3 --> UserAuthenticates{Usuario autentica}
+    
+    UserAuthenticates -->|✅ SMS correcto| AuthSuccess[Autenticación exitosa]
+    UserAuthenticates -->|✅ App confirmada| AuthSuccess
+    UserAuthenticates -->|✅ Biometría OK| AuthSuccess
+    UserAuthenticates -->|❌ Código incorrecto| AuthFailed[Autenticación fallida]
+    UserAuthenticates -->|❌ Rechaza en app| AuthFailed
+    UserAuthenticates -->|❌ Biometría falla| AuthFailed
+    UserAuthenticates -->|⏱️ Timeout 15min| AuthTimeout[Timeout autenticación]
+    UserAuthenticates -->|⏱️ Usuario cierra modal| UserCancels[Usuario cancela]
+    
+    AuthSuccess --> BankConfirm[Banco confirma a Openpay]
+    BankConfirm --> WebhookSuccess[Webhook: charge. succeeded]
+    WebhookSuccess --> UpdatePayment[Actualizar payment:  completed]
+    
+    UpdatePayment --> RenewSub[Renovar suscripción]
+    RenewSub --> ResetTokens[Resetear tokens]
+    ResetTokens --> CloseModal[Cerrar modal 3DS]
+    
+    CloseModal --> ShowSuccess[✅ Mostrar mensaje éxito]
+    ShowSuccess --> SuccessMsg[¡Pago completado exitosamente!]
+    SuccessMsg --> SuccessDetails[Tu suscripción se renovó]
+    SuccessDetails --> EmailConfirm[📧 Email:  Pago exitoso]
+    
+    EmailConfirm --> RedirectDashboard[Redirigir a dashboard]
+    RedirectDashboard --> End([Fin - Pago completado])
+    
+    AuthFailed --> ShowErrorAuth[Mostrar error autenticación]
+    AuthTimeout --> ShowErrorAuth
+    UserCancels --> ShowErrorAuth
+    Error3DSLoad --> ShowErrorAuth
+    ErrorTech --> ShowErrorAuth
+    
+    ShowErrorAuth --> ExplainError[Explicar qué pasó]
+    ExplainError --> OfferRetry[Ofrecer opciones:]
+    
+    OfferRetry --> RetryOpt1[• Reintentar autenticación]
+    RetryOpt1 --> RetryOpt2[• Actualizar tarjeta]
+    RetryOpt2 --> RetryOpt3[• Contactar soporte]
+    
+    RetryOpt3 --> UserChoice{Usuario elige}
+    
+    UserChoice -->|Reintentar| InitAuth
+    UserChoice -->|Actualizar tarjeta| UpdateCard[Ir a actualizar tarjeta]
+    UserChoice -->|Soporte| ContactSupport[Abrir chat soporte]
+    UserChoice -->|Salir| UserExits[Usuario sale]
+    
+    UpdateCard --> UpdateCardFlow[Ver Flujo 1: Agregar tarjeta]
+    UpdateCardFlow --> EndUpdate([Fin - Tarjeta actualizada])
+    
+    ContactSupport --> EndSupport([Fin - Ticket soporte])
+    
+    UserExits --> CountFail[Contar como fallo]
+    Timeout24h --> CountFail
+    
+    CountFail --> MarkFailed[Marcar payment:  failed]
+    MarkFailed --> TriggerRetries[Activar lógica de reintentos]
+    TriggerRetries --> EndFailed([Fin - Fallo, reintentos programados])
+    
+    style EmailReceived fill:#ffd43b
+    style Show3DSModal fill:#ff6b6b
+    style AuthSuccess fill:#51cf66
+    style ShowSuccess fill:#51cf66
+    style ShowErrorAuth fill:#ff8787
+    style Timeout24h fill:#ff8787
+```
+
+**Métricas de este flujo:**
+
+| Métrica | Objetivo | Alertar si |
+|---------|----------|------------|
+| **Tasa de apertura email #20** | >60% | <50% |
+| **Tasa de clic en botón** | >80% (de los que abren) | <70% |
+| **Tasa de autenticación exitosa** | >85% (de los que intentan) | <75% |
+| **Tiempo promedio completar** | <3 minutos | >5 minutos |
+| **Tasa de abandono en modal** | <10% | >15% |
+| **Timeout 24h (no actúan)** | <20% | >30% |
+
+**Mensajes clave en la página:**
+
+**Encabezado:**
+```
+🔒 Tu pago requiere autenticación adicional
+```
+
+**Explicación:**
+```
+Por seguridad, tu banco necesita verificar que realmente eres tú 
+quien está autorizando este pago. 
+
+Este es un proceso estándar de seguridad bancaria que protege 
+tu dinero de fraude. 
+
+Solo tomará 1 minuto completarlo.
+```
+
+**CTA (Call to Action):**
+```
+[Botón grande azul]
+Autenticar mi pago de $300 MXN ahora
+```
+
+**Ayuda:**
+```
+¿Qué opciones de autenticación veré? 
+• Código por SMS a tu celular
+• Confirmación en tu app bancaria
+• Huella digital o Face ID
+
+¿Necesitas ayuda?   [Chat con soporte]
+```
+
+**Tiempo esperado por paso:**
+1. Email → Clic:  **<5 minutos** (depende de usuario)
+2. Clic → Login (si aplica): **30 segundos**
+3. Página cargada → Clic botón: **30 segundos** (leer info)
+4. Modal 3DS cargando:  **5-10 segundos**
+5. Autenticación en banco: **30 segundos - 2 minutos**
+6. Confirmación y cierre: **10 segundos**
+
+**Total ideal:** **2-4 minutos**
 
 ---
 
-**Documento:** USER_FLOWS v1.0  
-**Fecha:** Enero 2026  
-**Próxima Revisión:** Post MVP
+## 📊 Resumen de Cambios por 3DS
 
+| Flujo | Cambio | Impacto |
+|-------|--------|---------|
+| **Flujo 1: Registro + Trial** | 🔴 Alto | Agregado proceso 3DS obligatorio |
+| **Flujo 2: Renovación Automática** | 🔴 Alto | MIT + manejo 3DS requerido |
+| **Flujo 3: Transferencia** | 🟢 Ninguno | No usa tarjeta |
+| **Flujo 4: Upgrade** | 🟡 Medio | Puede requerir 3DS |
+| **Flujo 5: Downgrade** | 🟢 Ninguno | No cobra inmediato |
+| **Flujo 6: Referidos** | 🟢 Ninguno | No afecta lógica |
+| **Flujo 7: Cupones** | 🟢 Ninguno | Solo reduce monto |
+| **Flujo 8: Factura** | 🟢 Ninguno | Post-pago |
+| **🆕 Flujo 9: Auth 3DS** | 🔴 Nuevo | Flujo completo nuevo |
+
+---
+
+## 📚 Referencias
+
+- [Documento 3DS Integration](./3
