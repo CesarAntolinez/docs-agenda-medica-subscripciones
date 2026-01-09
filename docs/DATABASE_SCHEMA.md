@@ -1,24 +1,24 @@
-# Database Schema
-## Laravel Subscription Manager Package
+# Esquema de Base de Datos
+## Paquete Gestor de Suscripciones Laravel
 
-**Version:** 2.0  
-**Date:** January 2026  
-**Update:** Polymorphic Relationships (subscriber_type/subscriber_id)
-
----
-
-## 📑 Table of Contents
-
-1. [ERD Diagram](#erd-diagram)
-2. [Table Categories](#table-categories)
-3. [Table Descriptions](#table-descriptions)
-4. [Relationships](#relationships)
-5. [Recommended Indexes](#recommended-indexes)
-6. [Deletion Policies](#deletion-policies)
+**Versión:** 2.0  
+**Fecha:** Enero 2026  
+**Actualización:** Relaciones Polimórficas (subscriber_type/subscriber_id) + Períodos Personalizables
 
 ---
 
-## ERD Diagram
+## 📑 Tabla de Contenidos
+
+1. [Diagrama ERD](#diagrama-erd)
+2. [Categorías de Tablas](#categorías-de-tablas)
+3. [Descripciones de Tablas](#descripciones-de-tablas)
+4. [Relaciones](#relaciones)
+5. [Índices Recomendados](#índices-recomendados)
+6. [Políticas de Eliminación](#políticas-de-eliminación)
+
+---
+
+## Diagrama ERD
 
 ```mermaid
 erDiagram
@@ -228,165 +228,165 @@ erDiagram
 
 ---
 
-## Table Categories
+## Categorías de Tablas
 
-### Core Tables (Always Included)
-- `plans` - Subscription plans catalog
-- `subscriptions` - Subscriber subscriptions (polymorphic)
-- `payments` - Payment records with 3DS support
-- `payment_retries` - Payment retry tracking
-- `grace_periods` - Grace period management
-- `billing_data` - Tax/billing data (polymorphic)
-- `coupons` ✅ - Discount coupons catalog
-- `subscriber_coupons` ✅ - Applied coupons (polymorphic)
-- `notifications` - Notification log (polymorphic)
-- `audit_logs` - Audit trail (polymorphic)
+### Tablas Core (Siempre Incluidas)
+- `plans` - Catálogo de planes de suscripción
+- `subscriptions` - Suscripciones de suscriptores (polimórfico)
+- `payments` - Registros de pagos con soporte 3DS
+- `payment_retries` - Seguimiento de reintentos de pago
+- `grace_periods` - Gestión de períodos de gracia
+- `billing_data` - Datos fiscales/facturación (polimórfico)
+- `coupons` ✅ - Catálogo de cupones de descuento
+- `subscriber_coupons` ✅ - Cupones aplicados (polimórfico)
+- `notifications` - Registro de notificaciones (polimórfico)
+- `audit_logs` - Registro de auditoría (polimórfico)
 
-### Optional Tables (Separate Migrations)
-- `tokens_usage` - Only if `tokens` feature is enabled
-- `referrals` - Only if `referrals` feature is enabled
-- `invoices` - Only if `invoicing` feature is enabled
+### Tablas Opcionales (Migraciones Separadas)
+- `tokens_usage` - Solo si la característica `tokens` está habilitada
+- `referrals` - Solo si la característica `referrals` está habilitada
+- `invoices` - Solo si la característica `invoicing` está habilitada
 
-### Not Included (Host Application Responsibility)
-- `users` or any subscriber model - The package uses **polymorphic relationships** to work with any subscribable model provided by the host application
+### No Incluidas (Responsabilidad de la Aplicación Host)
+- `users` o cualquier modelo suscriptor - El paquete usa **relaciones polimórficas** para trabajar con cualquier modelo suscribible proporcionado por la aplicación host
 
 ---
 
-## Table Descriptions
+## Descripciones de Tablas
 
 ### 1. plans
 
-**Description:** Catalog of available subscription plans.
+**Descripción:** Catálogo de planes de suscripción disponibles.
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| `name` | VARCHAR(255) | NO | Plan name |
-| `description` | TEXT | YES | Detailed plan description |
-| `tokens_monthly` | INT | NO | Monthly token allocation |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| `name` | VARCHAR(255) | NO | Nombre del plan |
+| `description` | TEXT | SÍ | Descripción detallada del plan |
+| `tokens_monthly` | INT | NO | Asignación mensual de tokens |
 | `periodicity` | ENUM | NO | monthly, annual, annual_monthly_billing |
-| `price_mxn` | DECIMAL(10,2) | NO | Price in Mexican pesos |
-| `price_cop` | DECIMAL(10,2) | NO | Price in Colombian pesos |
-| `trial_days` | INT | NO | Trial period days |
-| `active` | BOOLEAN | NO | Plan available for new subscriptions |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
+| `price_mxn` | DECIMAL(10,2) | NO | Precio en pesos mexicanos |
+| `price_cop` | DECIMAL(10,2) | NO | Precio en pesos colombianos |
+| `trial_days` | INT | NO | Días de período de prueba |
+| `active` | BOOLEAN | NO | Plan disponible para nuevas suscripciones |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
 
-**Indexes:**
-- PRIMARY KEY:  `id`
-- INDEX: `active`
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- ÍNDICE: `active`
 
-**Relationships:**
+**Relaciones:**
 - `plans` → `subscriptions` (1:N)
 
-**Policies:**
-- No soft delete (historical plans remain)
-- Prices are fixed per currency (no automatic conversion)
-- Inactive plan doesn't appear in selection, but existing subscriptions continue
+**Políticas:**
+- Sin borrado suave (los planes históricos permanecen)
+- Los precios son fijos por moneda (sin conversión automática)
+- Plan inactivo no aparece en selección, pero suscripciones existentes continúan
 
 ---
 
-### 2. subscriptions 🔒 **[UPDATED - Polymorphic + 3DS]**
+### 2. subscriptions 🔒 **[ACTUALIZADO - Polimórfico + 3DS + Períodos Personalizables]**
 
-**Description:** Subscriptions linked to any subscribable model (User, Company, Team, etc.)
+**Descripción:** Suscripciones vinculadas a cualquier modelo suscribible (User, Company, Team, etc.)
 
-| Field | Type | Null | Description |
+| Campo | Tipo | Null | Descripción |
 |-------|------|------|-------------|
-| `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
-| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Polymorphic model class (App\\Models\\User, App\\Models\\Company, etc.)** |
-| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Polymorphic model ID** |
-| `plan_id` | BIGINT UNSIGNED | NO | FK → plans.id (current plan) |
-| **`trial_days`** 🆕 | **INT** | **YES** | **Custom trial in days. If NULL, uses `plans.trial_days`. Allows special promotions or manual adjustments.** |
-| **`trial_ends_at`** 🆕 | **DATE** | **YES** | **Calculated trial end date. Automatically calculated when creating subscription.** |
-| **`grace_period_months`** 🆕 | **INT** | **YES** | **Custom grace period in months. If NULL, uses global config (2 months). Allows adjustment by customer level.** |
+| `id` | BIGINT UNSIGNED | NO | Clave primaria, Auto-incremento |
+| **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Clase del modelo polimórfico (App\\Models\\User, App\\Models\\Company, etc.)** |
+| **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **ID del modelo polimórfico** |
+| `plan_id` | BIGINT UNSIGNED | NO | FK → plans.id (plan actual) |
+| **`trial_days`** 🆕 | **INT** | **SÍ** | **Trial personalizado en días. Si es NULL, usa `plans.trial_days`. Permite promociones especiales o ajustes manuales.** |
+| **`trial_ends_at`** 🆕 | **DATE** | **SÍ** | **Fecha calculada de fin del trial. Se calcula automáticamente al crear la suscripción.** |
+| **`grace_period_months`** 🆕 | **INT** | **SÍ** | **Período de gracia personalizado en meses. Si es NULL, usa configuración global (2 meses). Permite ajuste por nivel de cliente.** |
 | `status` | ENUM | NO | trial, active, past_due, grace_period, cancelled, blocked |
 | `periodicity` | ENUM | NO | monthly, annual, annual_monthly_billing |
-| `starts_at` | DATE | NO | Subscription start date |
-| `ends_at` | DATE | YES | End date (NULL if active) |
-| `next_billing_date` | DATE | NO | Next billing date |
-| `card_token` | VARCHAR(255) | YES | Tokenized card from payment gateway |
-| `manual_payment_reference` | VARCHAR(255) | YES | Manual payment reference |
-| `mit_enabled` | BOOLEAN | NO | MIT enabled for recurring payments |
-| `first_payment_3ds_completed` | BOOLEAN | NO | First payment with 3DS successful |
-| `pending_plan_id` | BIGINT UNSIGNED | YES | FK → plans.id (for scheduled downgrades) |
-| `pending_plan_change_date` | DATE | YES | Scheduled change date |
-| `created_at` | TIMESTAMP | YES | Creation date |
-| `updated_at` | TIMESTAMP | YES | Last update date |
-| `deleted_at` | TIMESTAMP | YES | Soft delete |
+| `starts_at` | DATE | NO | Fecha de inicio de suscripción |
+| `ends_at` | DATE | SÍ | Fecha de fin (NULL si está activa) |
+| `next_billing_date` | DATE | NO | Próxima fecha de facturación |
+| `card_token` | VARCHAR(255) | SÍ | Tarjeta tokenizada de la pasarela de pagos |
+| `manual_payment_reference` | VARCHAR(255) | SÍ | Referencia de pago manual |
+| `mit_enabled` | BOOLEAN | NO | MIT habilitado para pagos recurrentes |
+| `first_payment_3ds_completed` | BOOLEAN | NO | Primer pago con 3DS exitoso |
+| `pending_plan_id` | BIGINT UNSIGNED | SÍ | FK → plans.id (para downgrades programados) |
+| `pending_plan_change_date` | DATE | SÍ | Fecha de cambio programada |
+| `created_at` | TIMESTAMP | SÍ | Fecha de creación |
+| `updated_at` | TIMESTAMP | SÍ | Fecha de última actualización |
+| `deleted_at` | TIMESTAMP | SÍ | Borrado suave |
 
-**Indexes:**
-- PRIMARY KEY: `id`
-- **INDEX: `subscriber_type`, `subscriber_id`** 🆕
-- FOREIGN KEY: `plan_id` → `plans.id`
-- FOREIGN KEY: `pending_plan_id` → `plans.id`
-- INDEX: `status`, `next_billing_date`, `deleted_at`
-- INDEX: `mit_enabled`, `first_payment_3ds_completed`
-- **INDEX: `trial_ends_at`** 🆕
+**Índices:**
+- CLAVE PRIMARIA: `id`
+- **ÍNDICE: `subscriber_type`, `subscriber_id`** 🆕
+- CLAVE FORÁNEA: `plan_id` → `plans.id`
+- CLAVE FORÁNEA: `pending_plan_id` → `plans.id`
+- ÍNDICE: `status`, `next_billing_date`, `deleted_at`
+- ÍNDICE: `mit_enabled`, `first_payment_3ds_completed`
+- **ÍNDICE: `trial_ends_at`** 🆕
 
-**Relationships:**
-- **Subscriber (polymorphic)** → `subscriptions` (1:N)
+**Relaciones:**
+- **Subscriber (polimórfico)** → `subscriptions` (1:N)
 - `plans` → `subscriptions` (1:N)
 - `subscriptions` → `payments` (1:N)
 - `subscriptions` → `tokens_usage` (1:N)
 - `subscriptions` → `grace_periods` (1:N)
 
-**Policies:**
-- Soft delete enabled
-- A subscriber can have multiple subscriptions (history)
-- Only one active subscription per subscriber at a time
+**Políticas:**
+- Borrado suave habilitado
+- Un suscriptor puede tener múltiples suscripciones (historial)
+- Solo una suscripción activa por suscriptor a la vez
 
-**Status:**
-- `trial`: In trial period
-- `active`: Active and up-to-date subscription
-- `past_due`: Overdue payment (in retries)
-- `grace_period`: In grace period (2 months)
-- `cancelled`: Cancelled by subscriber
-- `blocked`: Blocked for non-payment
+**Estados:**
+- `trial`: En período de prueba
+- `active`: Suscripción activa y al día
+- `past_due`: Pago vencido (en reintentos)
+- `grace_period`: En período de gracia (personalizable)
+- `cancelled`: Cancelada por el suscriptor
+- `blocked`: Bloqueada por falta de pago
 
-**Polymorphic Usage:**
-The package doesn't define what a "subscriber" is. It can be:
+**Uso Polimórfico:**
+El paquete no define qué es un "suscriptor". Puede ser:
 - `App\Models\User`
 - `App\Models\Company`
 - `App\Models\Team`
 - `App\Models\Organization`
-- Any model in your application that uses the `HasSubscription` trait
+- Cualquier modelo en tu aplicación que use el trait `HasSubscription`
 
-**Business Rules:**
+**Reglas de Negocio:**
 
-### Customizable Trial
+### Trial Personalizable
 
-**Application Logic:**
-1. If `subscriptions.trial_days` is NULL → use `plans.trial_days` (standard behavior)
-2. If `subscriptions.trial_days` has value → use that value (custom override)
-3. If `subscriptions.trial_days = 0` → no trial (immediate payment)
+**Lógica de Aplicación:**
+1. Si `subscriptions.trial_days` es NULL → usar `plans.trial_days` (comportamiento estándar)
+2. Si `subscriptions.trial_days` tiene valor → usar ese valor (override personalizado)
+3. Si `subscriptions.trial_days = 0` → sin trial (pago inmediato)
 
-**Use Cases:**
-- Standard trial: `trial_days = NULL` (inherits from plan)
-- Special promotion: `trial_days = 60` (60 days even if plan has 30)
-- Corporate client: `trial_days = 0` (no trial, immediate payment)
-- Admin manual adjustment: Any custom value
+**Casos de Uso:**
+- Trial estándar: `trial_days = NULL` (hereda del plan)
+- Promoción especial: `trial_days = 60` (60 días aunque el plan tenga 30)
+- Cliente corporativo: `trial_days = 0` (sin trial, pago inmediato)
+- Ajuste manual admin: Cualquier valor personalizado
 
-**Calculation of `trial_ends_at`:**
+**Cálculo de `trial_ends_at`:**
 ```php
-// Pseudocode
+// Pseudocódigo
 $trialDays = $subscription->trial_days ?? $subscription->plan->trial_days;
 $subscription->trial_ends_at = $subscription->starts_at->addDays($trialDays);
 ```
 
-### Customizable Grace Period
+### Período de Gracia Personalizable
 
-**Application Logic:**
-1. If `subscriptions.grace_period_months` is NULL → use global config (2 months)
-2. If `subscriptions.grace_period_months` has value → use that custom value
-3. If `subscriptions.grace_period_months = 0` → immediate block (no grace)
+**Lógica de Aplicación:**
+1. Si `subscriptions.grace_period_months` es NULL → usar config global (2 meses)
+2. Si `subscriptions.grace_period_months` tiene valor → usar ese valor personalizado
+3. Si `subscriptions.grace_period_months = 0` → bloqueo inmediato (sin gracia)
 
-**Use Cases:**
-- Standard customer: `grace_period_months = NULL` (2 months by default)
-- Premium customer: `grace_period_months = 6` (6 months tolerance)
-- Problematic customer: `grace_period_months = 0` (immediate block)
-- Temporary admin adjustment: Any value from 1-12 months
+**Casos de Uso:**
+- Cliente estándar: `grace_period_months = NULL` (2 meses por defecto)
+- Cliente premium: `grace_period_months = 6` (6 meses de tolerancia)
+- Cliente problemático: `grace_period_months = 0` (bloqueo inmediato)
+- Ajuste temporal admin: Cualquier valor de 1-12 meses
 
-**Example of Creating Grace Period:**
+**Ejemplo de Creación de Período de Gracia:**
 ```php
 // Pseudocode
 $graceMonths = $subscription->grace_period_months ?? config('subscriptions.grace_period.months', 2);
