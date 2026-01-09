@@ -703,6 +703,62 @@ return [
 
 ---
 
+## Períodos Personalizables
+
+El paquete permite personalizar tanto el trial como el grace period a nivel de **suscripción individual**.
+
+### Configuración Global (Defaults)
+
+```php
+'defaults' => [
+    // Trial por defecto si el plan no especifica
+    'trial_days' => env('SUBSCRIPTION_DEFAULT_TRIAL_DAYS', 14),
+    
+    // Grace period por defecto si la suscripción no especifica
+    'grace_period_months' => env('SUBSCRIPTION_DEFAULT_GRACE_MONTHS', 2),
+],
+```
+
+### Personalización por Suscripción
+
+**Trial Personalizado:**
+```php
+// Trial estándar (hereda del plan)
+$user->subscribeToPlan($plan);
+
+// Trial personalizado de 60 días (promoción)
+$user->subscribeToPlan($plan, ['trial_days' => 60]);
+
+// Sin trial (pago inmediato)
+$user->subscribeToPlan($plan, ['trial_days' => 0]);
+```
+
+**Grace Period Personalizado:**
+```php
+// Grace period estándar (2 meses)
+$subscription = $user->subscription;
+
+// Grace period extendido para cliente premium
+$subscription->update(['grace_period_months' => 6]);
+
+// Sin grace period (bloqueo inmediato)
+$subscription->update(['grace_period_months' => 0]);
+```
+
+### Variables de Entorno
+
+```env
+# Defaults globales
+SUBSCRIPTION_DEFAULT_TRIAL_DAYS=14
+SUBSCRIPTION_DEFAULT_GRACE_MONTHS=2
+
+# Permitir personalización
+SUBSCRIPTION_ALLOW_CUSTOM_TRIAL=true
+SUBSCRIPTION_ALLOW_CUSTOM_GRACE=true
+```
+
+---
+
 ## Configuration Validation
 
 Run the configuration validation command:
