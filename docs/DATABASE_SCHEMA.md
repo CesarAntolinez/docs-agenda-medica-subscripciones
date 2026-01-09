@@ -65,6 +65,9 @@ erDiagram
         string subscriber_type "Polymorphic type"
         bigint subscriber_id "Polymorphic ID"
         bigint plan_id FK
+        int trial_days "Custom trial (NULL = use plan trial)"
+        date trial_ends_at "Calculated trial end date"
+        int grace_period_months "Custom grace (NULL = use global config)"
         enum status "trial, active, past_due, grace_period, cancelled, blocked"
         enum periodicity "monthly, annual, annual_monthly_billing"
         date starts_at
@@ -293,6 +296,9 @@ erDiagram
 | **`subscriber_type`** 🆕 | **VARCHAR(255)** | **NO** | **Polymorphic model class (App\\Models\\User, App\\Models\\Company, etc.)** |
 | **`subscriber_id`** 🆕 | **BIGINT UNSIGNED** | **NO** | **Polymorphic model ID** |
 | `plan_id` | BIGINT UNSIGNED | NO | FK → plans.id (current plan) |
+| **`trial_days`** 🆕 | **INT** | **YES** | **Custom trial in days. If NULL, uses `plans.trial_days`. Allows special promotions or manual adjustments.** |
+| **`trial_ends_at`** 🆕 | **DATE** | **YES** | **Calculated trial end date. Automatically calculated when creating subscription.** |
+| **`grace_period_months`** 🆕 | **INT** | **YES** | **Custom grace period in months. If NULL, uses global config (2 months). Allows adjustment by customer level.** |
 | `status` | ENUM | NO | trial, active, past_due, grace_period, cancelled, blocked |
 | `periodicity` | ENUM | NO | monthly, annual, annual_monthly_billing |
 | `starts_at` | DATE | NO | Subscription start date |
@@ -315,6 +321,7 @@ erDiagram
 - FOREIGN KEY: `pending_plan_id` → `plans.id`
 - INDEX: `status`, `next_billing_date`, `deleted_at`
 - INDEX: `mit_enabled`, `first_payment_3ds_completed`
+- **INDEX: `trial_ends_at`** 🆕
 
 **Relationships:**
 - **Subscriber (polymorphic)** → `subscriptions` (1:N)
@@ -343,6 +350,53 @@ The package doesn't define what a "subscriber" is. It can be:
 - `App\Models\Team`
 - `App\Models\Organization`
 - Any model in your application that uses the `HasSubscription` trait
+
+**Business Rules:**
+
+### Customizable Trial
+
+**Application Logic:**
+1. If `subscriptions.trial_days` is NULL → use `plans.trial_days` (standard behavior)
+2. If `subscriptions.trial_days` has value → use that value (custom override)
+3. If `subscriptions.trial_days = 0` → no trial (immediate payment)
+
+**Use Cases:**
+- Standard trial: `trial_days = NULL` (inherits from plan)
+- Special promotion: `trial_days = 60` (60 days even if plan has 30)
+- Corporate client: `trial_days = 0` (no trial, immediate payment)
+- Admin manual adjustment: Any custom value
+
+**Calculation of `trial_ends_at`:**
+```php
+// Pseudocode
+$trialDays = $subscription->trial_days ?? $subscription->plan->trial_days;
+$subscription->trial_ends_at = $subscription->starts_at->addDays($trialDays);
+```
+
+### Customizable Grace Period
+
+**Application Logic:**
+1. If `subscriptions.grace_period_months` is NULL → use global config (2 months)
+2. If `subscriptions.grace_period_months` has value → use that custom value
+3. If `subscriptions.grace_period_months = 0` → immediate block (no grace)
+
+**Use Cases:**
+- Standard customer: `grace_period_months = NULL` (2 months by default)
+- Premium customer: `grace_period_months = 6` (6 months tolerance)
+- Problematic customer: `grace_period_months = 0` (immediate block)
+- Temporary admin adjustment: Any value from 1-12 months
+
+**Example of Creating Grace Period:**
+```php
+// Pseudocode
+$graceMonths = $subscription->grace_period_months ?? config('subscriptions.grace_period.months', 2);
+
+$gracePeriod = GracePeriod::create([
+    'subscription_id' => $subscription->id,
+    'started_at' => now(),
+    'ends_at' => now()->addMonths($graceMonths),
+]);
+```
 
 ---
 
@@ -655,12 +709,16 @@ The package doesn't define what a "subscriber" is. It can be:
 
 **Description:** Grace periods granted for payment failures.
 
+**NOTE:** The grace period duration (field `ends_at`) is calculated using:
+1. `subscriptions.grace_period_months` if it exists
+2. Global configuration `config('subscriptions.grace_period.months')` if NULL
+
 | Field | Type | Null | Description |
 |-------|------|------|-------------|
 | `id` | BIGINT UNSIGNED | NO | PK, Auto-increment |
 | `subscription_id` | BIGINT UNSIGNED | NO | FK → subscriptions.id |
 | `started_at` | DATE | NO | Grace period start date |
-| `ends_at` | DATE | NO | Grace period end date (2 months later) |
+| `ends_at` | DATE | NO | Grace period end date (customizable months) |
 | `months_owed` | INT | NO | Months owed |
 | `amount_owed` | DECIMAL(10,2) | NO | Total amount owed |
 | `notifications_sent` | INT | NO | Number of notifications sent |
@@ -677,7 +735,7 @@ The package doesn't define what a "subscriber" is. It can be:
 
 **Policies:**
 - NO soft delete (audit)
-- Fixed duration: 2 months
+- Customizable duration: Uses `subscriptions.grace_period_months` or global config (default 2 months)
 - Reminders every 15 days (configurable)
 - Subscriber maintains full access during grace period
 
