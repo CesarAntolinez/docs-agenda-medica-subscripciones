@@ -988,24 +988,24 @@ ON DELETE RESTRICT; -- Cannot delete subscription with payments
 
 ---
 
-## Summary of 3DS and Polymorphic Changes
+## Resumen de Cambios de 3DS y Polimórficos
 
 ### Tables Modified for Polymorphic Relationships
 
 **1. subscriptions:**
 - ✅ `subscriber_type` (VARCHAR 255) - Clase del modelo polimórfico
 - ✅ `subscriber_id` (BIGINT UNSIGNED) - ID del modelo polimórfico
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 **2. tokens_usage:**
 - ✅ `subscriber_type` (VARCHAR 255)
 - ✅ `subscriber_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 **3. subscriber_coupons (renamed from user_coupons):**
 - ✅ `subscriber_type` (VARCHAR 255)
 - ✅ `subscriber_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 - ✅ Tabla renombrada
 
 **4. referrals:**
@@ -1013,27 +1013,27 @@ ON DELETE RESTRICT; -- Cannot delete subscription with payments
 - ✅ `referrer_id` (BIGINT UNSIGNED)
 - ✅ `referred_type` (VARCHAR 255)
 - ✅ `referred_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminadas to users
+- ✅ Clave foránea eliminadas to users
 
 **5. billing_data:**
 - ✅ `billable_type` (VARCHAR 255)
 - ✅ `billable_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 **6. invoices:**
 - ✅ `invoiceable_type` (VARCHAR 255)
 - ✅ `invoiceable_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 **7. notifications:**
 - ✅ `notifiable_type` (VARCHAR 255)
 - ✅ `notifiable_id` (BIGINT UNSIGNED)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 **8. audit_logs:**
 - ✅ `auditable_type` (VARCHAR 255, nullable)
 - ✅ `auditable_id` (BIGINT UNSIGNED, nullable)
-- ✅ Clave foránea.*eliminada
+- ✅ Clave foránea eliminada
 
 ### Tablas Modificadas para 3DS
 

@@ -6,28 +6,28 @@
 
 ---
 
-## 📑 Table of Contents
+## 📑 Tabla de Contenidos
 
-1. [Overview](#overview)
-2. [Core Features](#core-features)
-3. [Opcional Modules](#optional-modules)
-4. [Payment Gateway Support](#payment-gateway-support)
-5. [Security Features](#security-features)
-6. [Notification System](#notification-system)
-7. [Flexibility Features](#flexibility-features)
+1. [Visión General](#visión-general)
+2. [Características Core](#características-core)
+3. [Módulos Opcionales](#módulos-opcionales)
+4. [Soporte de Pasarelas de Pago](#soporte-de-pasarelas-de-pago)
+5. [Características de Seguridad](#características-de-seguridad)
+6. [Sistema de Notificaciones](#sistema-de-notificaciones)
+7. [Características de Flexibilidad](#características-de-flexibilidad)
 
 ---
 
-## Overview
+## Visión General
 
-Laravel Subscription Manager is a complete subscription management package designed for flexibility, security, and scalability. It uses **polymorphic relationships** to work with any model in your Laravel application, making it truly reusable across different project types.
+Laravel Subscription Manager es un paquete completo de gestión de suscripciones diseñado para flexibilidad, seguridad y escalabilidad. Usa **relaciones polimórficas** para trabajar con cualquier modelo en tu aplicación Laravel, haciéndolo verdaderamente reutilizable en diferentes tipos de proyectos.
 
-**Key Differentiators:**
-- ✅ Polymorphic relationships - subscribe Users, Companies, Teams, or any model
-- ✅ Multi-gateway support with abstraction layer
-- ✅ Built-in 3D Secure 2.0 implementation
-- ✅ Modular architecture - enable only what you need
-- ✅ Production-ready with comprehensive audit logging
+**Diferenciadores Clave:**
+- ✅ Relaciones polimórficas - suscribir Usuarios, Empresas, Equipos o cualquier modelo
+- ✅ Soporte multi-pasarela con capa de abstracción
+- ✅ Implementación 3D Secure 2.0 integrada
+- ✅ Arquitectura modular - habilita solo lo que necesitas
+- ✅ Listo para producción con registro de auditoría completo
 
 ---
 
@@ -236,7 +236,7 @@ class Team extends Model {
 
 ---
 
-## Opcional Modules
+## Módulos Opcionales
 
 ### 9. Token Consumption Tracking **[OPTIONAL]**
 
@@ -324,7 +324,7 @@ class Team extends Model {
 
 ---
 
-## Payment Gateway Support
+## Soporte de Pasarelas de Pago
 
 ### Multi-Gateway Architecture
 
@@ -412,7 +412,7 @@ interface PaymentGatewayInterface {
 
 ---
 
-## Flexibility Features
+## Características de Flexibilidad
 
 ### 1. Polymorphic Relationships
 

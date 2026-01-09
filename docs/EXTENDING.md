@@ -150,7 +150,7 @@ class CustomSubscriptionCreated extends SubscriptionNotification
 
 ### Replace Default Notification
 
-In your proveedor de servicios:
+En tu proveedor de servicios:
 
 ```php
 use CesarAntolinez\LaravelSubscriptionManager\SubscriptionManager;
@@ -518,7 +518,7 @@ class CanUpgradeToPlan implements Rule
 
 ## Package Extension Points
 
-### proveedor de servicios Hooks
+### Hooks de Proveedor de Servicios
 
 ```php
 <?php
