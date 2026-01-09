@@ -1,370 +1,435 @@
 -- ============================================================================
--- DATABASE DDL - Sistema de Planes y Suscripciones
--- Plataforma SaaS de Gestión Médica (México y Colombia)
+-- DATABASE DDL - Sistema de Suscripciones
+-- Plataforma SaaS de Gestión Médica
 -- ============================================================================
--- Versión: 1.0
--- Fecha: Enero 2026
--- Motor: MySQL 8.0+
--- Charset: utf8mb4
--- Collation: utf8mb4_unicode_ci
+-- Versión: 1.1
+-- Fecha:  Enero 2026
+-- Actualización: Campos 3D Secure (3DS)
 -- ============================================================================
 
--- Configuración inicial
+-- Configuración de base de datos
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================================
--- 1. TABLA: users
--- Descripción: Almacena todos los usuarios del sistema
+-- Tabla: users
+-- Descripción: Usuarios del sistema con 4 roles
 -- ============================================================================
-
-CREATE TABLE users (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL COMMENT 'Nombre completo del usuario',
-    email VARCHAR(255) NOT NULL UNIQUE COMMENT 'Email único del usuario',
-    email_verified_at TIMESTAMP NULL COMMENT 'Fecha de verificación de email',
-    password VARCHAR(255) NOT NULL COMMENT 'Contraseña hasheada',
-    role ENUM('profesional', 'consultorio', 'asistente', 'paciente') NOT NULL COMMENT 'Rol del usuario',
-    country ENUM('MX', 'CO') NOT NULL COMMENT 'País del usuario',
-    remember_token VARCHAR(100) NULL COMMENT 'Token para "recordarme"',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL COMMENT 'Soft delete',
+CREATE TABLE `users` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL COMMENT 'Nombre completo del usuario',
+    `email` VARCHAR(255) NOT NULL UNIQUE COMMENT 'Email único (login)',
+    `email_verified_at` TIMESTAMP NULL COMMENT 'Fecha de verificación de email',
+    `password` VARCHAR(255) NOT NULL COMMENT 'Hash de contraseña (bcrypt)',
+    `role` ENUM('profesional', 'consultorio', 'asistente', 'paciente') NOT NULL COMMENT 'Rol del usuario',
+    `country` ENUM('MX', 'CO') NOT NULL COMMENT 'País del usuario',
+    `remember_token` VARCHAR(100) NULL COMMENT 'Token de "recordarme"',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL COMMENT 'Soft delete',
     
-    INDEX idx_email (email),
-    INDEX idx_role (role),
-    INDEX idx_country (country),
-    INDEX idx_deleted_at (deleted_at),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Usuarios del sistema con autenticación y roles';
+    INDEX `idx_email` (`email`),
+    INDEX `idx_role` (`role`),
+    INDEX `idx_country` (`country`),
+    INDEX `idx_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Usuarios del sistema';
 
 -- ============================================================================
--- 2. TABLA: plans
--- Descripción: Define los planes de suscripción disponibles
+-- Tabla: plans
+-- Descripción: Catálogo de planes de suscripción
 -- ============================================================================
-
-CREATE TABLE plans (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL COMMENT 'Nombre del plan',
-    description TEXT NULL COMMENT 'Descripción detallada',
-    tokens_monthly INT UNSIGNED NOT NULL COMMENT 'Tokens mensuales incluidos',
-    periodicity ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad del plan',
-    price_mxn DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Precio en pesos mexicanos',
-    price_cop DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Precio en pesos colombianos',
-    trial_days INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Días de trial (0 = sin trial)',
-    active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Si el plan está activo',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `plans` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL COMMENT 'Nombre del plan',
+    `description` TEXT NULL COMMENT 'Descripción detallada del plan',
+    `tokens_monthly` INT NOT NULL COMMENT 'Cantidad de tokens mensuales',
+    `periodicity` ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad del plan',
+    `price_mxn` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Precio en pesos mexicanos',
+    `price_cop` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Precio en pesos colombianos',
+    `trial_days` INT NOT NULL DEFAULT 0 COMMENT 'Días de trial',
+    `active` BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Plan disponible para nuevas suscripciones',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    INDEX idx_active (active),
-    INDEX idx_periodicity (periodicity),
-    INDEX idx_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Planes de suscripción con características y precios';
+    INDEX `idx_active` (`active`),
+    INDEX `idx_periodicity` (`periodicity`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Planes de suscripción';
 
 -- ============================================================================
--- 3. TABLA: subscriptions
--- Descripción: Gestiona las suscripciones activas de los usuarios
+-- Tabla: subscriptions [ACTUALIZADO - 3DS]
+-- Descripción:  Suscripciones de usuarios a planes
 -- ============================================================================
-
-CREATE TABLE subscriptions (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    plan_id BIGINT UNSIGNED NOT NULL,
-    status ENUM('trialing', 'active', 'past_due', 'cancelled', 'blocked') NOT NULL DEFAULT 'trialing' COMMENT 'Estado de la suscripción',
-    periodicity ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad contratada',
-    starts_at DATETIME NOT NULL COMMENT 'Fecha de inicio',
-    ends_at DATETIME NULL COMMENT 'Fecha de finalización (si cancelada)',
-    next_billing_date DATETIME NOT NULL COMMENT 'Próxima fecha de cobro',
-    card_token VARCHAR(255) NULL COMMENT 'Token de tarjeta en Openpay (encriptado)',
-    manual_payment_reference VARCHAR(255) NULL COMMENT 'Referencia de pago manual',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL COMMENT 'Soft delete',
+CREATE TABLE `subscriptions` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario que tiene la suscripción',
+    `plan_id` BIGINT UNSIGNED NOT NULL COMMENT 'Plan actual de la suscripción',
+    `status` ENUM('trial', 'active', 'past_due', 'grace_period', 'cancelled', 'blocked') NOT NULL DEFAULT 'trial' COMMENT 'Estado de la suscripción',
+    `periodicity` ENUM('monthly', 'annual', 'annual_monthly_billing') NOT NULL COMMENT 'Periodicidad de cobro',
+    `starts_at` DATE NOT NULL COMMENT 'Fecha de inicio',
+    `ends_at` DATE NULL COMMENT 'Fecha de fin (NULL si activa)',
+    `next_billing_date` DATE NOT NULL COMMENT 'Próxima fecha de cobro',
+    `card_token` VARCHAR(255) NULL COMMENT 'Token de tarjeta en Openpay',
+    `manual_payment_reference` VARCHAR(255) NULL COMMENT 'Referencia de pago manual',
+    `mit_enabled` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'MIT habilitado para pagos recurrentes',
+    `first_payment_3ds_completed` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Primer pago con 3DS exitoso',
+    `pending_plan_id` BIGINT UNSIGNED NULL COMMENT 'Plan programado (downgrade)',
+    `pending_plan_change_date` DATE NULL COMMENT 'Fecha de cambio programado',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL COMMENT 'Soft delete',
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE RESTRICT,
+    FOREIGN KEY `fk_subscriptions_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY `fk_subscriptions_plan` (`plan_id`) REFERENCES `plans`(`id`) ON DELETE RESTRICT,
+    FOREIGN KEY `fk_subscriptions_pending_plan` (`pending_plan_id`) REFERENCES `plans`(`id`) ON DELETE SET NULL,
     
-    INDEX idx_user_status (user_id, status),
-    INDEX idx_next_billing (next_billing_date, status),
-    INDEX idx_status (status),
-    INDEX idx_deleted_at (deleted_at),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Suscripciones de usuarios con estado y fechas de facturación';
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_plan_id` (`plan_id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_next_billing_date` (`next_billing_date`),
+    INDEX `idx_deleted_at` (`deleted_at`),
+    INDEX `idx_mit_enabled` (`mit_enabled`),
+    INDEX `idx_first_payment_3ds` (`first_payment_3ds_completed`),
+    INDEX `idx_renewal` (`next_billing_date`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Suscripciones de usuarios';
 
 -- ============================================================================
--- 4. TABLA: tokens_usage
--- Descripción: Registra el consumo mensual de tokens por usuario
+-- Tabla: tokens_usage
+-- Descripción: Tracking de consumo de tokens por período
 -- ============================================================================
-
-CREATE TABLE tokens_usage (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    subscription_id BIGINT UNSIGNED NOT NULL,
-    period_start DATE NOT NULL COMMENT 'Inicio del período',
-    period_end DATE NOT NULL COMMENT 'Fin del período',
-    used INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Tokens consumidos',
-    total INT UNSIGNED NOT NULL COMMENT 'Total de tokens del período',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `tokens_usage` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario',
+    `subscription_id` BIGINT UNSIGNED NOT NULL COMMENT 'Suscripción',
+    `period_start` DATE NOT NULL COMMENT 'Inicio del período',
+    `period_end` DATE NOT NULL COMMENT 'Fin del período',
+    `used` INT NOT NULL DEFAULT 0 COMMENT 'Tokens usados',
+    `total` INT NOT NULL COMMENT 'Tokens totales del período',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY `fk_tokens_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY `fk_tokens_subscription` (`subscription_id`) REFERENCES `subscriptions`(`id`) ON DELETE CASCADE,
     
-    INDEX idx_user_period (user_id, period_start, period_end),
-    INDEX idx_subscription_period (subscription_id, period_start),
-    UNIQUE KEY idx_user_period_unique (user_id, period_start)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Tracking de consumo de tokens por período';
-
--- ============================================================================
--- 5. TABLA: payments
--- Descripción: Registra todas las transacciones de pago
--- ============================================================================
-
-CREATE TABLE payments (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    subscription_id BIGINT UNSIGNED NOT NULL,
-    amount DECIMAL(10,2) NOT NULL COMMENT 'Monto del pago',
-    currency ENUM('MXN', 'COP') NOT NULL COMMENT 'Moneda',
-    method ENUM('card', 'transfer') NOT NULL COMMENT 'Método de pago',
-    status ENUM('pending', 'successful', 'failed', 'refunded') NOT NULL DEFAULT 'pending' COMMENT 'Estado del pago',
-    openpay_transaction_id VARCHAR(255) NULL COMMENT 'ID de transacción en Openpay',
-    attempt INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Número de intento',
-    paid_at DATETIME NULL COMMENT 'Fecha de pago exitoso',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
-    
-    INDEX idx_subscription_status (subscription_id, status),
-    INDEX idx_openpay_transaction (openpay_transaction_id),
-    INDEX idx_status_created (status, created_at),
-    INDEX idx_paid_at (paid_at),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Registro de transacciones de pago';
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_subscription_id` (`subscription_id`),
+    INDEX `idx_period_start` (`period_start`),
+    INDEX `idx_user_period` (`user_id`, `period_start` DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Consumo de tokens';
 
 -- ============================================================================
--- 6. TABLA: coupons
--- Descripción: Define cupones de descuento disponibles
+-- Tabla: payments [ACTUALIZADO - 3DS]
+-- Descripción: Registro de todos los pagos y sus estados 3DS
 -- ============================================================================
-
-CREATE TABLE coupons (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código del cupón (único, case-insensitive)',
-    type ENUM('percentage', 'fixed_amount') NOT NULL COMMENT 'Tipo de descuento',
-    value DECIMAL(10,2) NOT NULL COMMENT 'Valor del descuento',
-    duration_months INT UNSIGNED NULL COMMENT 'Duración en meses (NULL = permanente)',
-    applicable_plans JSON NULL COMMENT 'IDs de planes aplicables (NULL = todos)',
-    usage_limit INT UNSIGNED NULL COMMENT 'Límite total de usos (NULL = ilimitado)',
-    current_usage INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Usos actuales',
-    expires_at DATETIME NULL COMMENT 'Fecha de expiración',
-    active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Si el cupón está activo',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `payments` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `subscription_id` BIGINT UNSIGNED NOT NULL COMMENT 'Suscripción asociada',
+    `amount` DECIMAL(10,2) NOT NULL COMMENT 'Monto del pago',
+    `currency` VARCHAR(3) NOT NULL COMMENT 'Moneda (MXN, COP)',
+    `method` ENUM('card', 'bank_transfer') NOT NULL COMMENT 'Método de pago',
+    `status` ENUM('pending', 'processing', 'requires_3ds', 'authenticating', 'authenticated', 'completed', 'failed', 'refunded', 'cancelled') NOT NULL DEFAULT 'pending' COMMENT 'Estado del pago',
+    `openpay_transaction_id` VARCHAR(255) NULL COMMENT 'ID de transacción en Openpay',
+    `attempt` INT NOT NULL DEFAULT 1 COMMENT 'Número de intento (1, 2, 3)',
+    `paid_at` TIMESTAMP NULL COMMENT 'Fecha de pago completado',
+    `error_code` VARCHAR(50) NULL COMMENT 'Código de error',
+    `error_message` TEXT NULL COMMENT 'Mensaje de error',
+    `requires_3ds` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Pago requiere 3DS',
+    `three_ds_status` ENUM('not_required', 'pending', 'authenticated', 'failed', 'timeout') NOT NULL DEFAULT 'not_required' COMMENT 'Estado de 3DS',
+    `three_ds_redirect_url` VARCHAR(500) NULL COMMENT 'URL del banco para autenticación',
+    `three_ds_version` VARCHAR(10) NULL COMMENT 'Versión de 3DS (1.0, 2.0)',
+    `authentication_required_notified_at` TIMESTAMP NULL COMMENT 'Cuándo se notificó al usuario',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    INDEX idx_code_active (code, active),
-    INDEX idx_active_expires (active, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Cupones de descuento con configuración y límites';
-
--- ============================================================================
--- 7. TABLA: user_coupons
--- Descripción: Registra qué usuarios han aplicado qué cupones
--- ============================================================================
-
-CREATE TABLE user_coupons (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    coupon_id BIGINT UNSIGNED NOT NULL,
-    applied_at DATETIME NOT NULL COMMENT 'Fecha de aplicación',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY `fk_payments_subscription` (`subscription_id`) REFERENCES `subscriptions`(`id`) ON DELETE RESTRICT,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
-    
-    UNIQUE KEY idx_user_coupon_unique (user_id, coupon_id),
-    INDEX idx_coupon_applied (coupon_id, applied_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Asociación de cupones aplicados por usuario';
+    INDEX `idx_subscription_id` (`subscription_id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_openpay_transaction_id` (`openpay_transaction_id`),
+    INDEX `idx_requires_3ds` (`requires_3ds`),
+    INDEX `idx_three_ds_status` (`three_ds_status`),
+    INDEX `idx_auth_notified` (`authentication_required_notified_at`),
+    INDEX `idx_3ds_pending` (`requires_3ds`, `three_ds_status`, `authentication_required_notified_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Pagos y estados 3DS';
 
 -- ============================================================================
--- 8. TABLA: referrals
--- Descripción: Gestiona el sistema de referidos
+-- Tabla: coupons
+-- Descripción:  Catálogo de cupones de descuento
 -- ============================================================================
-
-CREATE TABLE referrals (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    referrer_id BIGINT UNSIGNED NOT NULL COMMENT 'Usuario que refiere',
-    referred_id BIGINT UNSIGNED NOT NULL COMMENT 'Usuario referido',
-    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único de referido',
-    referrer_benefit JSON NOT NULL COMMENT 'Beneficios del referidor',
-    referred_benefit JSON NOT NULL COMMENT 'Beneficios del referido',
-    status ENUM('pending', 'completed', 'expired') NOT NULL DEFAULT 'pending' COMMENT 'Estado del referido',
-    completed_at DATETIME NULL COMMENT 'Fecha de conversión',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `coupons` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único del cupón',
+    `type` ENUM('percentage', 'fixed') NOT NULL COMMENT 'Tipo de descuento',
+    `value` DECIMAL(10,2) NOT NULL COMMENT 'Valor del descuento',
+    `duration_months` INT NULL COMMENT 'Duración en meses (NULL=permanente)',
+    `applicable_plans` JSON NULL COMMENT 'IDs de planes (NULL=todos)',
+    `usage_limit` INT NULL COMMENT 'Límite de usos (NULL=ilimitado)',
+    `current_usage` INT NOT NULL DEFAULT 0 COMMENT 'Usos actuales',
+    `expires_at` DATE NULL COMMENT 'Fecha de expiración',
+    `active` BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Cupón activo',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (referrer_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (referred_id) REFERENCES users(id) ON DELETE CASCADE,
-    
-    INDEX idx_referrer_status (referrer_id, status),
-    INDEX idx_referred (referred_id),
-    INDEX idx_code (code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Sistema de referidos con tracking y beneficios';
+    INDEX `idx_code` (`code`),
+    INDEX `idx_active` (`active`),
+    INDEX `idx_expires_at` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cupones de descuento';
 
 -- ============================================================================
--- 9. TABLA: billing_data
--- Descripción: Almacena datos fiscales de los usuarios
+-- Tabla: user_coupons
+-- Descripción: Relación de cupones aplicados por usuarios
 -- ============================================================================
-
-CREATE TABLE billing_data (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    country ENUM('MX', 'CO') NOT NULL COMMENT 'País',
-    tax_id VARCHAR(50) NOT NULL COMMENT 'RFC (MX) o NIT (CO) - encriptado',
-    legal_name VARCHAR(255) NOT NULL COMMENT 'Razón social - encriptado',
-    tax_regime VARCHAR(100) NULL COMMENT 'Régimen fiscal (solo MX)',
-    postal_code VARCHAR(10) NULL COMMENT 'Código postal (solo MX)',
-    cfdi_use VARCHAR(100) NULL COMMENT 'Uso de CFDI (solo MX)',
-    person_type ENUM('natural', 'juridica') NULL COMMENT 'Tipo de persona (solo CO)',
-    address VARCHAR(255) NULL COMMENT 'Dirección (solo CO)',
-    city VARCHAR(100) NULL COMMENT 'Ciudad (solo CO)',
-    state VARCHAR(100) NULL COMMENT 'Departamento (solo CO)',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `user_coupons` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario',
+    `coupon_id` BIGINT UNSIGNED NOT NULL COMMENT 'Cupón',
+    `applied_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de aplicación',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY `fk_user_coupons_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY `fk_user_coupons_coupon` (`coupon_id`) REFERENCES `coupons`(`id`) ON DELETE CASCADE,
     
-    UNIQUE KEY idx_user (user_id),
-    INDEX idx_country (country)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Datos fiscales de usuarios para facturación';
+    UNIQUE KEY `uk_user_coupon` (`user_id`, `coupon_id`),
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_coupon_id` (`coupon_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cupones aplicados por usuarios';
 
 -- ============================================================================
--- 10. TABLA: invoices
--- Descripción: Registra solicitudes y facturas generadas
+-- Tabla: referrals
+-- Descripción: Sistema de referidos
 -- ============================================================================
-
-CREATE TABLE invoices (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    payment_id BIGINT UNSIGNED NOT NULL,
-    file_url VARCHAR(500) NULL COMMENT 'URL del PDF de factura',
-    requested_at DATETIME NOT NULL COMMENT 'Fecha de solicitud',
-    sent_at DATETIME NULL COMMENT 'Fecha de envío',
-    status ENUM('pending', 'generated', 'sent') NOT NULL DEFAULT 'pending' COMMENT 'Estado',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `referrals` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `referrer_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario que refiere',
+    `referred_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario referido',
+    `code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único de referido',
+    `referrer_benefit` JSON NOT NULL COMMENT 'Beneficios del referidor',
+    `referred_benefit` JSON NOT NULL COMMENT 'Beneficios del referido',
+    `status` ENUM('pending', 'completed', 'expired') NOT NULL DEFAULT 'pending' COMMENT 'Estado del referido',
+    `completed_at` TIMESTAMP NULL COMMENT 'Fecha de completado',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+    FOREIGN KEY `fk_referrals_referrer` (`referrer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY `fk_referrals_referred` (`referred_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     
-    INDEX idx_user_status (user_id, status),
-    INDEX idx_payment (payment_id),
-    INDEX idx_status_requested (status, requested_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Solicitudes y facturas electrónicas';
-
--- ============================================================================
--- 11. TABLA: payment_retries
--- Descripción: Registra reintentos de pagos fallidos
--- ============================================================================
-
-CREATE TABLE payment_retries (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    payment_id BIGINT UNSIGNED NOT NULL,
-    attempt INT UNSIGNED NOT NULL COMMENT 'Número de reintento (1-3)',
-    tried_at DATETIME NOT NULL COMMENT 'Fecha del reintento',
-    result TEXT NOT NULL COMMENT 'Resultado/mensaje del reintento',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
-    
-    INDEX idx_payment_attempt (payment_id, attempt),
-    INDEX idx_tried_at (tried_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Registro de reintentos de pagos fallidos';
+    INDEX `idx_referrer_id` (`referrer_id`),
+    INDEX `idx_referred_id` (`referred_id`),
+    INDEX `idx_code` (`code`),
+    INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sistema de referidos';
 
 -- ============================================================================
--- 12. TABLA: grace_periods
--- Descripción: Gestiona períodos de gracia por fallos de pago
+-- Tabla: billing_data
+-- Descripción: Datos fiscales de usuarios para facturación
 -- ============================================================================
-
-CREATE TABLE grace_periods (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    subscription_id BIGINT UNSIGNED NOT NULL,
-    started_at DATETIME NOT NULL COMMENT 'Inicio del período de gracia',
-    ends_at DATETIME NOT NULL COMMENT 'Fin (2 meses después)',
-    months_owed INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Meses adeudados',
-    amount_owed DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Monto total de deuda',
-    notifications_sent INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Recordatorios enviados',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `billing_data` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL UNIQUE COMMENT 'Usuario (relación 1:1)',
+    `country` ENUM('MX', 'CO') NOT NULL COMMENT 'País',
+    `tax_id` VARCHAR(50) NOT NULL COMMENT 'RFC o NIT',
+    `legal_name` VARCHAR(255) NOT NULL COMMENT 'Razón social',
+    `tax_regime` VARCHAR(100) NULL COMMENT 'Régimen fiscal (solo MX)',
+    `postal_code` VARCHAR(10) NULL COMMENT 'Código postal (solo MX)',
+    `cfdi_use` VARCHAR(10) NULL COMMENT 'Uso de CFDI (solo MX)',
+    `person_type` ENUM('natural', 'legal') NULL COMMENT 'Tipo de persona (solo CO)',
+    `address` TEXT NULL COMMENT 'Dirección (solo CO)',
+    `city` VARCHAR(100) NULL COMMENT 'Ciudad (solo CO)',
+    `state` VARCHAR(100) NULL COMMENT 'Departamento (solo CO)',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY `fk_billing_data_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     
-    UNIQUE KEY idx_subscription (subscription_id),
-    INDEX idx_ends_at (ends_at),
-    INDEX idx_started_at (started_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Períodos de gracia por fallo de pago';
-
--- ============================================================================
--- 13. TABLA: notifications
--- Descripción: Registra todas las notificaciones enviadas a usuarios
--- ============================================================================
-
-CREATE TABLE notifications (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    type VARCHAR(100) NOT NULL COMMENT 'Tipo de notificación',
-    sent_at DATETIME NULL COMMENT 'Fecha de envío',
-    status ENUM('pending', 'sent', 'failed') NOT NULL DEFAULT 'pending' COMMENT 'Estado',
-    metadata JSON NULL COMMENT 'Datos adicionales',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    
-    INDEX idx_user_type (user_id, type),
-    INDEX idx_status_sent (status, sent_at),
-    INDEX idx_type (type),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Registro de notificaciones por email';
+    INDEX `idx_country` (`country`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Datos fiscales de usuarios';
 
 -- ============================================================================
--- 14. TABLA: audit_logs
--- Descripción: Registro de auditoría de todas las acciones críticas
+-- Tabla:  invoices
+-- Descripción:  Solicitudes y registro de facturas electrónicas
+-- ============================================================================
+CREATE TABLE `invoices` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario',
+    `payment_id` BIGINT UNSIGNED NOT NULL COMMENT 'Pago asociado',
+    `file_url` VARCHAR(500) NULL COMMENT 'Ruta del PDF',
+    `requested_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de solicitud',
+    `sent_at` TIMESTAMP NULL COMMENT 'Fecha de envío',
+    `status` ENUM('requested', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'requested' COMMENT 'Estado de la factura',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY `fk_invoices_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY `fk_invoices_payment` (`payment_id`) REFERENCES `payments`(`id`) ON DELETE RESTRICT,
+    
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_payment_id` (`payment_id`),
+    INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Facturas electrónicas';
+
+-- ============================================================================
+-- Tabla:  payment_retries
+-- Descripción: Registro de reintentos de pagos fallidos
+-- ============================================================================
+CREATE TABLE `payment_retries` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `payment_id` BIGINT UNSIGNED NOT NULL COMMENT 'Pago asociado',
+    `attempt` INT NOT NULL COMMENT 'Número de reintento',
+    `tried_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha del reintento',
+    `result` TEXT NULL COMMENT 'Resultado del reintento',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY `fk_payment_retries_payment` (`payment_id`) REFERENCES `payments`(`id`) ON DELETE CASCADE,
+    
+    INDEX `idx_payment_id` (`payment_id`),
+    INDEX `idx_tried_at` (`tried_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Reintentos de pagos';
+
+-- ============================================================================
+-- Tabla: grace_periods
+-- Descripción:  Períodos de gracia por fallos de pago
+-- ============================================================================
+CREATE TABLE `grace_periods` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `subscription_id` BIGINT UNSIGNED NOT NULL COMMENT 'Suscripción',
+    `started_at` DATE NOT NULL COMMENT 'Fecha de inicio',
+    `ends_at` DATE NOT NULL COMMENT 'Fecha de fin (2 meses)',
+    `months_owed` INT NOT NULL DEFAULT 0 COMMENT 'Meses adeudados',
+    `amount_owed` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Monto adeudado',
+    `notifications_sent` INT NOT NULL DEFAULT 0 COMMENT 'Notificaciones enviadas',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY `fk_grace_periods_subscription` (`subscription_id`) REFERENCES `subscriptions`(`id`) ON DELETE CASCADE,
+    
+    INDEX `idx_subscription_id` (`subscription_id`),
+    INDEX `idx_ends_at` (`ends_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Períodos de gracia';
+
+-- ============================================================================
+-- Tabla:  notifications [ACTUALIZADO - 3DS]
+-- Descripción: Log de notificaciones enviadas (20 tipos)
+-- ============================================================================
+CREATE TABLE `notifications` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Usuario destinatario',
+    `type` VARCHAR(100) NOT NULL COMMENT 'Tipo de notificación (20 tipos)',
+    `sent_at` TIMESTAMP NULL COMMENT 'Fecha de envío',
+    `status` ENUM('pending', 'sent', 'failed', 'bounced') NOT NULL DEFAULT 'pending' COMMENT 'Estado del envío',
+    `metadata` JSON NULL COMMENT 'Datos adicionales',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY `fk_notifications_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_sent_at` (`sent_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Notificaciones enviadas';
+
+-- ============================================================================
+-- Tabla: audit_logs
+-- Descripción:  Registro de auditoría de acciones críticas
+-- ============================================================================
+CREATE TABLE `audit_logs` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NULL COMMENT 'Usuario (NULL si es sistema)',
+    `action` VARCHAR(100) NOT NULL COMMENT 'Acción realizada',
+    `entity` VARCHAR(100) NOT NULL COMMENT 'Entidad afectada',
+    `entity_id` BIGINT UNSIGNED NOT NULL COMMENT 'ID del registro',
+    `before` JSON NULL COMMENT 'Estado antes',
+    `after` JSON NULL COMMENT 'Estado después',
+    `ip` VARCHAR(45) NULL COMMENT 'IP de origen',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY `fk_audit_logs_user` (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_entity` (`entity`, `entity_id`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Logs de auditoría';
+
+-- ============================================================================
+-- Índices compuestos adicionales para optimización
 -- ============================================================================
 
-CREATE TABLE audit_logs (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NULL COMMENT 'Usuario que ejecuta (NULL = sistema)',
-    action VARCHAR(100) NOT NULL COMMENT 'Acción realizada',
-    entity VARCHAR(100) NOT NULL COMMENT 'Entidad afectada',
-    entity_id BIGINT UNSIGNED NOT NULL COMMENT 'ID de la entidad',
-    before JSON NULL COMMENT 'Estado anterior',
-    after JSON NULL COMMENT 'Estado nuevo',
-    ip VARCHAR(45) NULL COMMENT 'IP de origen',
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    
-    INDEX idx_entity (entity, entity_id),
-    INDEX idx_user_action (user_id, action),
-    INDEX idx_created_at (created_at),
-    INDEX idx_action (action)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Audit log de acciones críticas del sistema';
+-- Consulta de renovaciones diarias
+CREATE INDEX idx_subscriptions_renewal_query 
+ON subscriptions(next_billing_date, status, mit_enabled);
+
+-- Consulta de pagos 3DS pendientes
+CREATE INDEX idx_payments_3ds_pending_query 
+ON payments(requires_3ds, three_ds_status, authentication_required_notified_at) 
+WHERE requires_3ds = TRUE AND three_ds_status = 'pending';
+
+-- Consulta de tokens de usuario actual
+CREATE INDEX idx_tokens_current_period 
+ON tokens_usage(user_id, period_end DESC);
+
+-- Consulta de períodos de gracia activos
+CREATE INDEX idx_grace_periods_active 
+ON grace_periods(ends_at, subscription_id) 
+WHERE ends_at >= CURDATE();
+
+-- ============================================================================
+-- Datos de ejemplo (OPCIONAL - solo para desarrollo)
+-- ============================================================================
+
+-- Plan de ejemplo
+INSERT INTO `plans` (`name`, `description`, `tokens_monthly`, `periodicity`, `price_mxn`, `price_cop`, `trial_days`, `active`) VALUES
+('Google Tech + IA 50', 'Plan básico con 50 tokens mensuales', 5000, 'monthly', 299.00, 50000.00, 14, TRUE),
+('Google Tech + IA 100', 'Plan profesional con 100 tokens mensuales', 10000, 'monthly', 499.00, 80000.00, 14, TRUE),
+('Google Tech + IA 200', 'Plan empresarial con 200 tokens mensuales', 20000, 'monthly', 899.00, 150000.00, 14, TRUE);
+
+-- ============================================================================
+-- Triggers para auditoría (OPCIONAL)
+-- ============================================================================
+
+DELIMITER $$
+
+-- Trigger para auditar cambios en subscriptions
+CREATE TRIGGER trg_subscriptions_audit_update
+AFTER UPDATE ON subscriptions
+FOR EACH ROW
+BEGIN
+    IF OLD.status != NEW.status OR OLD.plan_id != NEW.plan_id THEN
+        INSERT INTO audit_logs (user_id, action, entity, entity_id, `before`, `after`, ip)
+        VALUES (
+            NEW.user_id,
+            'update',
+            'subscription',
+            NEW.id,
+            JSON_OBJECT('status', OLD.status, 'plan_id', OLD.plan_id),
+            JSON_OBJECT('status', NEW.status, 'plan_id', NEW.plan_id),
+            NULL
+        );
+    END IF;
+END$$
+
+-- Trigger para auditar cambios en payments
+CREATE TRIGGER trg_payments_audit_update
+AFTER UPDATE ON payments
+FOR EACH ROW
+BEGIN
+    IF OLD. status != NEW.status OR OLD. three_ds_status != NEW.three_ds_status THEN
+        INSERT INTO audit_logs (user_id, action, entity, entity_id, `before`, `after`, ip)
+        SELECT 
+            s.user_id,
+            'update',
+            'payment',
+            NEW.id,
+            JSON_OBJECT('status', OLD. status, 'three_ds_status', OLD.three_ds_status),
+            JSON_OBJECT('status', NEW.status, 'three_ds_status', NEW.three_ds_status),
+            NULL
+        FROM subscriptions s
+        WHERE s.id = NEW.subscription_id;
+    END IF;
+END$$
+
+DELIMITER ;
 
 -- ============================================================================
 -- Restaurar configuración
@@ -375,3 +440,20 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================================
 -- FIN DEL SCRIPT
 -- ============================================================================
+
+-- NOTAS:
+-- 1. Ejecutar este script en base de datos limpia
+-- 2. Para producción, ajustar datos de ejemplo según necesidades
+-- 3. Triggers de auditoría son opcionales pero recomendados
+-- 4. Índices compuestos mejoran performance de queries frecuentes
+-- 5. Campos 3DS (requires_3ds, three_ds_*, mit_enabled) son críticos para flujo de pagos
+-- 6. Soft delete habilitado solo en users y subscriptions
+-- 7. Foreign keys configurados con ON DELETE apropiado para cada caso
+
+-- VERSIÓN:  1.1
+-- CAMBIOS: 
+-- - Agregados campos 3DS en tabla payments
+-- - Agregados campos MIT en tabla subscriptions
+-- - Agregados índices para queries de 3DS
+-- - Agregados triggers de auditoría
+-- - Optimizados índices compuestos
