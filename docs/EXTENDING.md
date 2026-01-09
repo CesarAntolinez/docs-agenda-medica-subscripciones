@@ -20,19 +20,19 @@
 
 ### Crear una Pasarela Personalizada
 
-Implementar la `PaymentGatewayinterfaz`:
+Implementar la `PaymentGatewayInterface`:
 
 ```php
 <?php
 
 namespace App\Gateways;
 
-use CesarAntolinez\LaravelSubscriptionManager\Contracts\PaymentGatewayinterfaz;
+use CesarAntolinez\LaravelSubscriptionManager\Contracts\PaymentGatewayInterface;
 use CesarAntolinez\LaravelSubscriptionManager\DTOs\PaymentResult;
 use CesarAntolinez\LaravelSubscriptionManager\DTOs\RefundResult;
 use Illuminate\Http\Request;
 
-class MyCustomGateway implements PaymentGatewayinterfaz
+class MyCustomGateway implements PaymentGatewayInterface
 {
     public function charge(array $data): PaymentResult
     {
